@@ -32,7 +32,8 @@ well, together with the changes below.
   `exit_node` is now reported as not applied instead of being silently ignored; the
   overview showed a tailnet waiting for a login as healthy, and its auth key was never
   retried; host access added by a reload did nothing until a restart; a removed tailnet
-  could keep its host names; a subnet route that two tailnets accept flapped between them.
+  could keep its host names; a subnet route that two tailnets accept flapped between them;
+  a route table that did not exist yet for IPv6 stopped the IPv4 route sync.
 - The fork publishes no documentation site. Its two new keys are described in
   [docs/site/reference/configuration.md](docs/site/reference/configuration.md) and
   [docs/site/security/console.md](docs/site/security/console.md).

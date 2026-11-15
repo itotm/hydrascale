@@ -727,3 +727,67 @@ func TestHostRouteKeyDropsThePrefixOfASingleAddress(t *testing.T) {
 		}
 	}
 }
+
+// With host_ipv6: false the IPv6 table 53 never gets a route, so `ip -6 route show table
+// 53` keeps failing. The sync stopped there and wrote no IPv4 route either.
+func TestSyncHostRoutesWritesTheIPv4RoutesWhenTheIPv6TableDoesNotExist(t *testing.T) {
+	peers := TailnetPeers{
+		TailnetID:   "corp",
+		VethGateway: "10.200.0.1",
+		VethHost:    "vh001",
+		NsName:      "ns-corp",
+		Peers:       []Peer{{Hostname: "laptop", IPv4: "100.64.0.1", IPv6: "fd7a:115c:a1e0::1", Online: true}},
+	}
+	missing := func(family string) execx.Result {
+		return execx.Result{
+			Output: []byte("Error: " + family + ": FIB table does not exist.\nDump terminated\n"),
+			Err:    errors.New("exit status 2"),
+		}
+	}
+
+	rec := execx.NewRecorder(t)
+	rec.Script(execx.Result{Output: []byte("0:\tfrom all lookup local\n32000:\tfrom all lookup 53\n32766:\tfrom all lookup main\n")},
+		"ip", "rule", "show")
+	rec.Script(execx.Result{Output: []byte("RTNETLINK answers: No such file or directory\n"), Err: errors.New("exit status 2")},
+		"ip", "-6", "rule", "del", "priority", "32000", "from", "all", "lookup", "53")
+	rec.Script(execx.Result{}, "ip", "netns", "exec", "ns-corp", "ip", "route", "show", "table", "52")
+	rec.Script(execx.Result{Output: []byte("100.64.0.1 via 10.200.0.1 dev vh001 src 10.200.0.2\n")},
+		"ip", "route", "get", "100.64.0.1")
+	rec.Script(missing("ipv4"), "ip", "route", "show", "table", "53")
+	rec.Script(missing("ipv6"), "ip", "-6", "route", "show", "table", "53")
+	rec.Script(execx.Result{}, "ip",
+		"route", "replace", "100.64.0.1", "via", "10.200.0.1", "dev", "vh001", "table", "53")
+
+	m := NewManager("hosts", filepath.Join(t.TempDir(), "hosts"), "10.200.0.0/16", 53)
+	m.SetHostIPv6(false)
+	m.Runner = rec
+
+	if err := m.SyncHostRoutes(peers); err != nil {
+		t.Fatalf("SyncHostRoutes returned %v, want no error for tables that hold no route", err)
+	}
+	var wrote bool
+	for _, c := range rec.Calls() {
+		if len(c.Args) > 2 && c.Args[0] == "route" && c.Args[1] == "replace" && c.Args[2] == "100.64.0.1" {
+			wrote = true
+		}
+		if len(c.Args) > 0 && c.Args[0] == "-6" && strings.Contains(c.String(), "replace") {
+			t.Errorf("the manager wrote an IPv6 route with host_ipv6: false: %s", c)
+		}
+	}
+	if !wrote {
+		t.Error("the manager wrote no IPv4 route")
+	}
+}
+
+func TestFlushOfATableThatDoesNotExistIsNoError(t *testing.T) {
+	rec := execx.NewRecorder(t)
+	rec.Script(execx.Result{
+		Output: []byte("Error: ipv6: FIB table does not exist.\nFlush terminated\n"),
+		Err:    errors.New("exit status 2"),
+	}, "ip", "-6", "route", "flush", "table", "53")
+	m := NewManager("hosts", filepath.Join(t.TempDir(), "hosts"), "10.200.0.0/16", 53)
+	m.Runner = rec
+	if err := m.flushHostRouteTable(true); err != nil {
+		t.Errorf("flushHostRouteTable returned %v for a table that does not exist", err)
+	}
+}

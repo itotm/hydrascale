@@ -613,6 +613,10 @@ func (m *Manager) removeHostRouteRule(v6 bool) error {
 func (m *Manager) flushHostRouteTable(v6 bool) error {
 	args := m.routeArgs(v6, "route", "flush")
 	if out, err := m.run("ip", args...); err != nil {
+		if tableIsEmpty(string(out)) {
+			// A table that does not exist holds nothing to remove.
+			return nil
+		}
 		return fmt.Errorf("ip %s: %w (%s)", strings.Join(args, " "), err, out)
 	}
 	return nil
@@ -681,6 +685,11 @@ func (m *Manager) SyncHostRoutes(peers TailnetPeers) error {
 	sv4, sv6 := desiredServiceRoutes(peers)
 	wantV4 = mergeRoutes(wantV4, sv4)
 	wantV6 = mergeRoutes(wantV6, sv6)
+	if m.noHostIPv6 {
+		// host_ipv6: false. No IPv6 route is wanted, so the diff below also removes an
+		// IPv6 route that an earlier start wrote on the device of the tailnet.
+		wantV6 = nil
+	}
 
 	if peers.NsName != "" {
 		nsV4, err := m.listNsTableRoutes(peers.NsName, infraSubnet)
@@ -716,9 +725,13 @@ func (m *Manager) SyncHostRoutes(peers TailnetPeers) error {
 	}
 	showV6 := m.routeArgs(true, "route", "show")
 	v6Out, err := m.run("ip", showV6...)
-	if err != nil {
+	if err != nil && !tableIsEmpty(string(v6Out)) {
 		errs = append(errs, fmt.Errorf("ip %s: %w", strings.Join(showV6, " "), err))
 		return errors.Join(errs...)
+	} else if err != nil {
+		// The table holds no IPv6 route yet. With host_ipv6: false it never holds one,
+		// and before this branch the sync stopped here and wrote no IPv4 route either.
+		v6Out = nil
 	}
 
 	actualV4 := parseHostRoutes(string(v4Out), vethDev, infraSubnet)
@@ -864,9 +877,9 @@ func (m *Manager) RemoveAllHostRoutes(vethDev string) error {
 
 	showV6 := m.routeArgs(true, "route", "show")
 	v6Out, err := m.run("ip", showV6...)
-	if err != nil {
+	if err != nil && !tableIsEmpty(string(v6Out)) {
 		errs = append(errs, fmt.Errorf("ip %s: %w", strings.Join(showV6, " "), err))
-	} else {
+	} else if err == nil {
 		for _, ip := range parseHostRoutesV6(string(v6Out), vethDev) {
 			args := m.routeArgs(true, "route", "del", ip)
 			if out, e := m.run("ip", args...); e != nil {
