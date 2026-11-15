@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"net"
+	"os"
+	"strings"
 )
 
 // DefaultConsoleBindAddress is the address that the console serves when the
@@ -15,6 +17,11 @@ const DefaultConsoleBindAddress = "127.0.0.1:9443"
 type ConsoleConfig struct {
 	Enabled     *bool  `yaml:"enabled,omitempty"`
 	BindAddress string `yaml:"bind_address,omitempty"`
+	// PasswordFile names a root-only file (mode 0600) that holds the console password on
+	// its first line. When it is set, every console request needs HTTP basic
+	// authentication with that password; the user name is free. Empty keeps the console
+	// open to every local account, as upstream does.
+	PasswordFile string `yaml:"password_file,omitempty"`
 }
 
 // ConsoleEnabled reports whether the daemon opens the console listener.
@@ -59,4 +66,30 @@ func ValidateConsoleBindAddress(addr string) error {
 		return fmt.Errorf("invalid console.bind_address %q: the console must bind a loopback address, such as %s", addr, DefaultConsoleBindAddress)
 	}
 	return nil
+}
+
+// LoadConsolePassword reads the console password from path. It refuses a file that is not
+// a regular file, a file that grants access to a group or to other accounts, and a file
+// whose first line is empty.
+func LoadConsolePassword(path string) (string, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return "", fmt.Errorf("console.password_file: %w", err)
+	}
+	if !info.Mode().IsRegular() {
+		return "", fmt.Errorf("console.password_file %s is not a regular file", path)
+	}
+	if perm := info.Mode().Perm(); perm&0077 != 0 {
+		return "", fmt.Errorf("console.password_file %s has mode %04o, and the daemon reads mode 0600 only", path, perm)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("console.password_file: %w", err)
+	}
+	password, _, _ := strings.Cut(string(data), "\n")
+	password = strings.TrimRight(password, "\r")
+	if password == "" {
+		return "", fmt.Errorf("console.password_file %s holds no password on its first line", path)
+	}
+	return password, nil
 }

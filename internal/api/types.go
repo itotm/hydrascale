@@ -32,6 +32,9 @@ type StatusResponse struct {
 	ConfigPath     string `json:"config_path,omitempty"`
 	SocketPath     string `json:"socket_path,omitempty"`
 	ConsoleAddress string `json:"console_address,omitempty"`
+	// ConsolePassword is true when the console asks for the password of
+	// console.password_file.
+	ConsolePassword bool `json:"console_password"`
 }
 
 // AccessStatus is the access field of GET /api/status. It holds the mode that the daemon
@@ -298,13 +301,33 @@ type SplitDNSEntry struct {
 
 // PeerInfo is a single peer within a tailnet, derived from tailscale status --json.
 type PeerInfo struct {
-	HostName     string    `json:"host_name"`
-	DNSName      string    `json:"dns_name,omitempty"`
-	OS           string    `json:"os,omitempty"`
-	TailscaleIPs []string  `json:"tailscale_ips,omitempty"`
-	AllowedIPs   []string  `json:"allowed_ips,omitempty"`
-	Online       bool      `json:"online"`
-	LastSeen     time.Time `json:"last_seen,omitempty"`
+	HostName     string   `json:"host_name"`
+	DNSName      string   `json:"dns_name,omitempty"`
+	OS           string   `json:"os,omitempty"`
+	TailscaleIPs []string `json:"tailscale_ips,omitempty"`
+	AllowedIPs   []string `json:"allowed_ips,omitempty"`
+	Online       bool     `json:"online"`
+	// LastSeen is absent for a peer that is online: tailscaled reports the zero time then,
+	// and the console printed 0001-01-01.
+	LastSeen *time.Time `json:"last_seen,omitempty"`
+
+	// The fields below come from the same peer record of `tailscale status --json`.
+	// User is the login name of the owner, or "tagged-devices" for a tagged node.
+	User           string     `json:"user,omitempty"`
+	Tags           []string   `json:"tags,omitempty"`
+	PrimaryRoutes  []string   `json:"primary_routes,omitempty"`
+	ExitNodeOption bool       `json:"exit_node_option"`
+	ExitNode       bool       `json:"exit_node"`
+	Active         bool       `json:"active"`
+	CurAddr        string     `json:"cur_addr,omitempty"`
+	Relay          string     `json:"relay,omitempty"`
+	PeerRelay      string     `json:"peer_relay,omitempty"`
+	RxBytes        int64      `json:"rx_bytes"`
+	TxBytes        int64      `json:"tx_bytes"`
+	Created        *time.Time `json:"created,omitempty"`
+	LastHandshake  *time.Time `json:"last_handshake,omitempty"`
+	KeyExpiry      *time.Time `json:"key_expiry,omitempty"`
+	Expired        bool       `json:"expired"`
 }
 
 // ServiceInfo is one Tailscale service that a tailnet advertises.
@@ -343,8 +366,14 @@ type TailnetDetailResponse struct {
 	Services       []ServiceInfo `json:"services,omitempty"`
 	BackendState   string        `json:"backend_state,omitempty"`
 	LoginURL       string        `json:"login_url,omitempty"`
-	FetchedAt      time.Time     `json:"fetched_at"`
-	Error          string        `json:"error,omitempty"`
+	// TailnetName, SelfUser, Version and Health describe the node of this host in the
+	// tailnet: the tailnet name, the login name, the tailscaled version and its warnings.
+	TailnetName string    `json:"tailnet_name,omitempty"`
+	SelfUser    string    `json:"self_user,omitempty"`
+	Version     string    `json:"version,omitempty"`
+	Health      []string  `json:"health,omitempty"`
+	FetchedAt   time.Time `json:"fetched_at"`
+	Error       string    `json:"error,omitempty"`
 }
 
 // TailnetRemovalPlanResponse is the JSON response for GET /api/tailnet/{id}/removal-plan.

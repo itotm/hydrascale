@@ -2,6 +2,8 @@
 package config
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
@@ -131,6 +133,13 @@ type Config struct {
 	// force_forwarding, which Linux 6.17 adds. A kernel that holds force_forwarding gets the
 	// IPv6 path of each namespace without this key. See issue #406.
 	IPv6 bool `yaml:"ipv6,omitempty"`
+
+	// HostIPv6 controls the IPv6 side of host access. Absent or true, the daemon writes
+	// an IPv6 route for every peer, the IPv6 routing policy rule and the AAAA records of
+	// the alias zones. False writes none of them, for a host with no IPv6: a name then
+	// resolves to the IPv4 address only, and `ip -6 route` stays clean. The namespaces keep
+	// IPv6. A change needs a restart of the daemon.
+	HostIPv6 *bool `yaml:"host_ipv6,omitempty"`
 	// SocketGroup, when set, makes the API control socket group-accessible:
 	// the daemon chowns /var/lib/hydrascale + api.sock to root:<group> with
 	// group-traversable/rw modes. Add a trusted user to that group to let it
@@ -238,6 +247,20 @@ func LoadConfig(path string) (*Config, error) {
 
 	// Validate DNS bind address
 	if err := ValidateBindAddress(cfg.Resolver.BindAddress); err != nil {
+		return nil, err
+	}
+
+	// host_dns.mode selects how the host resolves the tailnet names. A typo such as
+	// "resolve" loaded before and registered nothing, with no error.
+	switch cfg.HostDNS.Mode {
+	case "", "hosts", "resolved":
+	default:
+		return nil, fmt.Errorf("invalid host_dns.mode %q: use \"hosts\" or \"resolved\"", cfg.HostDNS.Mode)
+	}
+
+	// Each namespace takes a /30 of infra_subnet from a hash of its name. Two names with
+	// the same hash got the same addresses and broke one tailnet without an error.
+	if err := validateVethIndexes(cfg.Tailnets); err != nil {
 		return nil, err
 	}
 
@@ -407,6 +430,33 @@ func DefaultConfig() *Config {
 // IsValidID reports whether id is a valid tailnet ID.
 func IsValidID(id string) bool {
 	return validIDPattern.MatchString(id)
+}
+
+// VethIndexFor returns the veth index of the namespace of tailnet id. It repeats
+// namespaces.VethIndex("ns-" + id), which config cannot import; a test in
+// internal/namespaces keeps the two equal.
+func VethIndexFor(id string) int {
+	h := sha256.Sum256([]byte("ns-" + id))
+	return int(binary.BigEndian.Uint32(h[:4]))%254 + 1
+}
+
+// validateVethIndexes refuses two tailnets whose namespaces take the same veth index.
+func validateVethIndexes(tailnets []Tailnet) error {
+	taken := make(map[int]string, len(tailnets))
+	for _, tn := range tailnets {
+		index := VethIndexFor(tn.ID)
+		if other, ok := taken[index]; ok {
+			return fmt.Errorf("tailnets %q and %q take the same veth index %d, so their namespaces get the same addresses: rename one of them", other, tn.ID, index)
+		}
+		taken[index] = tn.ID
+	}
+	return nil
+}
+
+// HostIPv6Enabled reports whether host access writes the IPv6 addresses of the peers on
+// the host. It returns true when the file holds no host_ipv6 key.
+func (c *Config) HostIPv6Enabled() bool {
+	return c.HostIPv6 == nil || *c.HostIPv6
 }
 
 // ValidateTailnetNames checks the ID and the alias of every tailnet. An ID is unique among

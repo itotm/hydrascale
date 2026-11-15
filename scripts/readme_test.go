@@ -9,28 +9,12 @@ import (
 	"testing"
 )
 
-// siteURL is the root of the published site (FR-site-4). FR-readme-8 requires each link of
-// the README to a site page to start with it.
-const siteURL = "https://crank-git.github.io/Hydrascale/"
-
-// readmeSections are the "## " headings that FR-readme-2 requires after the header, in
-// order.
+// readmeSections are the "## " headings of the README of the fork, in order. The fork
+// links to the upstream repository for everything else, so the README holds only these.
 var readmeSections = []string{
-	"What Hydrascale does",
-	"Requirements",
-	"Install",
-	"Quick start",
-	"The console",
-	"Documentation",
-	"Agent skills",
+	"Changes in the fork",
+	"Releases",
 	"License",
-}
-
-// siteSections are the eight navigation sections of FR-site-10, in order. The
-// Documentation table of the README holds one row for each (FR-readme-6).
-var siteSections = []string{
-	"Home", "Get started", "Guides", "Concepts",
-	"Reference", "Operations", "Architecture", "Security",
 }
 
 func readReadme(t *testing.T) string {
@@ -40,23 +24,6 @@ func readReadme(t *testing.T) string {
 		t.Fatalf("read README.md: %v", err)
 	}
 	return string(data)
-}
-
-// readmeSection returns the lines below the heading "## <name>", up to the next "## "
-// heading.
-func readmeSection(readme, name string) []string {
-	var out []string
-	in := false
-	for _, line := range strings.Split(readme, "\n") {
-		if strings.HasPrefix(line, "## ") {
-			in = strings.TrimPrefix(line, "## ") == name
-			continue
-		}
-		if in {
-			out = append(out, line)
-		}
-	}
-	return out
 }
 
 func TestTheReadmeIsShort(t *testing.T) {
@@ -78,34 +45,7 @@ func TestTheReadmeSectionsAreInOrder(t *testing.T) {
 		}
 	}
 	if !slices.Equal(got, readmeSections) {
-		t.Errorf("the README sections are %q; FR-readme-2 requires %q", got, readmeSections)
-	}
-}
-
-var siteLink = regexp.MustCompile(regexp.QuoteMeta(siteURL) + `[^)\s"'>]*`)
-
-func TestEachSiteLinkOfTheReadmeMapsToAPage(t *testing.T) {
-	links := siteLink.FindAllString(readReadme(t), -1)
-	if len(links) == 0 {
-		t.Fatal("the README holds no link to the site")
-	}
-	for _, link := range links {
-		path := strings.TrimPrefix(link, siteURL)
-		path, _, _ = strings.Cut(path, "#")
-		path = strings.Trim(path, "/")
-		candidates := []string{filepath.Join(path, "index.md")}
-		if path != "" {
-			candidates = append(candidates, path+".md")
-		}
-		found := false
-		for _, c := range candidates {
-			if _, err := os.Stat(filepath.Join("..", "docs", "site", c)); err == nil {
-				found = true
-			}
-		}
-		if !found {
-			t.Errorf("the README links to %s, but docs/site holds none of %q", link, candidates)
-		}
+		t.Errorf("the README sections are %q; the fork requires %q", got, readmeSections)
 	}
 }
 
@@ -135,43 +75,6 @@ func TestEachRepositoryLinkOfTheReadmeExists(t *testing.T) {
 		if strings.HasSuffix(file, ".png") && !strings.HasPrefix(file, "docs/site/images/") {
 			t.Errorf("the screenshot %s is not under docs/site/images/ (FR-readme-11)", target)
 		}
-	}
-}
-
-var linkText = regexp.MustCompile(`\[([^\]]+)\]`)
-
-func TestTheDocumentationTableHasOneRowPerSection(t *testing.T) {
-	var rows [][]string
-	for _, line := range readmeSection(readReadme(t), "Documentation") {
-		if !strings.HasPrefix(line, "|") || strings.HasPrefix(line, "|---") {
-			continue
-		}
-		cells := strings.Split(strings.Trim(line, "|"), "|")
-		for i := range cells {
-			cells[i] = strings.TrimSpace(cells[i])
-		}
-		rows = append(rows, cells)
-	}
-	if len(rows) > 0 {
-		rows = rows[1:] // The first row is the header.
-	}
-	var names []string
-	for _, row := range rows {
-		// The first cell links the section name to the site, and the second states what the
-		// section holds.
-		if len(row) < 2 || row[1] == "" {
-			t.Errorf("the row %q states no content of the section (FR-readme-6)", row)
-			continue
-		}
-		name := linkText.FindStringSubmatch(row[0])
-		if name == nil || !strings.Contains(row[0], "]("+siteURL) {
-			t.Errorf("the row %q holds no absolute link to the site (FR-readme-6)", row)
-			continue
-		}
-		names = append(names, name[1])
-	}
-	if !slices.Equal(names, siteSections) {
-		t.Errorf("the Documentation table holds %q; FR-readme-6 requires %q", names, siteSections)
 	}
 }
 

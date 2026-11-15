@@ -46,3 +46,10 @@ root. Name a group that holds only trusted operators. See
 
 The [security audit](audit.md) records each finding, its severity, and the epic that
 corrects it.
+
+## Fork: the console password
+
+The fork adds `console.password_file`. When the key names a root-only file (mode `0600`)
+that holds a password on its first line, every console request needs HTTP basic
+authentication with that password, and the user name is free. A local account without the
+password gets HTTP 401. The control socket and the command line need no password.

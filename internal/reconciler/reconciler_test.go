@@ -660,6 +660,34 @@ func TestEvents_MaxCap(t *testing.T) {
 	}
 }
 
+// A routine event repeats on every tick. The list keeps the newest copy of each one, so
+// a day of ticks does not push the real events out of the list.
+func TestEvents_RoutineEventsKeepOneCopy(t *testing.T) {
+	cfgPath := writeTestConfig(t)
+	r := newTestReconciler(cfgPath, newMockNS(), newMockDaemon(), newMockRouting())
+
+	r.emit("action_failed", "home", "start_daemon: boom")
+	for i := 0; i < 2000; i++ {
+		r.emit("reconcile_start", "", "")
+		r.emit("action_ok", "home", string(ActionSyncRoutes))
+		r.emit("action_ok", "home", string(ActionSyncHostAccess))
+		r.emit("action_ok", "work", string(ActionSyncRoutes))
+		r.emit("reconcile_complete", "", fmt.Sprintf("applied %d actions", i))
+	}
+
+	events := r.Events()
+	if len(events) != 6 {
+		t.Fatalf("len(events) = %d, want 6: one real event and one copy of each routine event", len(events))
+	}
+	if events[0].Type != "action_failed" {
+		t.Errorf("oldest event = %q, want the real event action_failed", events[0].Type)
+	}
+	last := events[len(events)-1]
+	if last.Type != "reconcile_complete" || last.Message != "applied 1999 actions" {
+		t.Errorf("newest event = %q %q, want the newest reconcile_complete", last.Type, last.Message)
+	}
+}
+
 func TestLockPathFor(t *testing.T) {
 	// In non-root test environments, falls back to config file's directory
 	got := lockPathFor("/tmp/test.yaml")
@@ -839,4 +867,57 @@ func countActions(actions []Action) map[ActionType]int {
 		counts[a.Type]++
 	}
 	return counts
+}
+
+// A tailnet that leaves the configuration drops its error and pause states, so the
+// operator can add it again without pressing connect.
+func TestDiffDropsTheStatesOfARemovedTailnet(t *testing.T) {
+	cfgPath := writeTestConfig(t)
+	r := newTestReconciler(cfgPath, newMockNS(), newMockDaemon(), newMockRouting())
+	r.mu.Lock()
+	r.errorStates["gone"] = true
+	r.pausedStates["gone"] = true
+	r.failureCounts["gone"] = 3
+	r.mu.Unlock()
+
+	r.Diff(map[string]config.Tailnet{}, map[string]*TailnetState{})
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.errorStates["gone"] || r.pausedStates["gone"] || r.failureCounts["gone"] != 0 {
+		t.Errorf("states of a removed tailnet stay: error=%v paused=%v failures=%d",
+			r.errorStates["gone"], r.pausedStates["gone"], r.failureCounts["gone"])
+	}
+}
+
+// A healthy node that waits for a login, and that holds an auth key, gets a new attempt;
+// a second tick right after gets none.
+func TestDiffRetriesTheAuthKeyOfANodeThatWaitsForALogin(t *testing.T) {
+	cfgPath := writeTestConfig(t, "home")
+	r := newTestReconciler(cfgPath, newMockNS(), newMockDaemon(), newMockRouting())
+	t.Setenv("HYDRASCALE_AUTHKEY_HOME", "tskey-auth-test")
+
+	desired := map[string]config.Tailnet{"home": {ID: "home"}}
+	actual := map[string]*TailnetState{"home": {ID: "home", NsName: "ns-home", NsExists: true, DaemonHealthy: true, BackendState: "NeedsLogin"}}
+
+	count := func(actions []Action) int {
+		n := 0
+		for _, a := range actions {
+			if a.Type == ActionAuthDaemon {
+				n++
+			}
+		}
+		return n
+	}
+	if got := count(r.Diff(desired, actual)); got != 1 {
+		t.Fatalf("the first tick planned %d login attempts, want 1", got)
+	}
+	if got := count(r.Diff(desired, actual)); got != 0 {
+		t.Fatalf("the next tick planned %d login attempts, want 0 within the retry interval", got)
+	}
+	actual["home"].BackendState = "Running"
+	r.lastAuthAttempt = nil
+	if got := count(r.Diff(desired, actual)); got != 0 {
+		t.Fatalf("a running node got %d login attempts, want 0", got)
+	}
 }

@@ -28,6 +28,9 @@ host_access: false
 # Let the daemon set net.ipv6.conf.all.forwarding on a kernel older than Linux 6.17.
 # ipv6: true
 
+# Write no IPv6 route, rule or AAAA record on the host (default: true).
+# host_ipv6: false
+
 # The Unix group that reaches the control socket (default: empty, which is root only).
 # socket_group: hydrascale
 
@@ -83,6 +86,7 @@ reconciler:
 | `infra_subnet` | `10.200.0.0/16` | The subnet of the veth pairs between the host and the namespaces. The value is an IPv4 CIDR of `/16` or larger. Change it when `10.200.0.0/16` collides with a route on the network. |
 | `route_table` | absent | The routing table that holds every route that the daemon writes on the host. See [The route table](#the-route-table). |
 | `ipv6` | `false` | Lets the daemon set `net.ipv6.conf.all.forwarding` on a kernel older than Linux 6.17. A newer kernel holds `force_forwarding`, and it gets the IPv6 path of each namespace without this key. |
+| `host_ipv6` | `true` | Writes the IPv6 address of each peer on the host: one IPv6 route per peer, the IPv6 routing policy rule, and the AAAA records of the alias zones. Set `false` on a host with no IPv6, so a name resolves to the IPv4 address only. The namespaces keep IPv6. A change needs a restart of the daemon. |
 | `socket_group` | empty | The Unix group that reaches the control socket. An empty value keeps the socket root only. See [Remote access](../operations/remote-access.md). |
 | `secrets_file` | `/etc/hydrascale/secrets.yaml` | The root-only file that holds a credential per tailnet. The file needs the mode `0600` and the owner root. |
 | `probe_target` | `1.1.1.1` | The address that each namespace sends one packet to, so that the status answer reports measured reachability. Declare an IP address. The daemon refuses a name. |
@@ -140,6 +144,7 @@ writes stops this migration.
 |---|---|---|
 | `console.enabled` | `true` | Opens the console listener. The value `false` closes the listener, and the control socket keeps the JSON API. |
 | `console.bind_address` | `127.0.0.1:9443` | The address of the console listener. The value is a loopback IP address and a port. The daemon refuses another address, and it refuses a name such as `localhost`. |
+| `console.password_file` | empty | A root-only file (mode `0600`) that holds the console password on its first line. When the key is set, the console asks for that password with HTTP basic authentication; the user name is free. The control socket and the command line need no password. |
 
 A version 0.9 file holds no `console` key, so the daemon serves the console on the default
 address with no edit. The console has no authentication. Read

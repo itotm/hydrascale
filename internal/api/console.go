@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
 	"fmt"
 	"log"
 	"net"
@@ -54,6 +56,32 @@ var parseRoute = regexp.MustCompile(`^/api/policy/[^/]+/sections$`)
 // consoleReadHeaderTimeout bounds how long a client may take to send its request head.
 const consoleReadHeaderTimeout = 10 * time.Second
 
+// SetConsolePassword turns on HTTP basic authentication on the console listener. Every
+// request then needs the password; the user name is free. Call it before StartConsole.
+// An empty password keeps the console open, which is the upstream behaviour.
+func (s *Server) SetConsolePassword(password string) {
+	if password == "" {
+		s.consolePasswordHash = nil
+		return
+	}
+	sum := sha256.Sum256([]byte(password))
+	s.consolePasswordHash = sum[:]
+}
+
+// consoleAuthorized reports whether r carries the console password. It compares hashes in
+// constant time, so the answer time states nothing about the password.
+func (s *Server) consoleAuthorized(r *http.Request) bool {
+	if s.consolePasswordHash == nil {
+		return true
+	}
+	_, password, ok := r.BasicAuth()
+	if !ok {
+		return false
+	}
+	sum := sha256.Sum256([]byte(password))
+	return subtle.ConstantTimeCompare(sum[:], s.consolePasswordHash) == 1
+}
+
 // ConsoleAddress returns the address that the console listener holds, such as
 // 127.0.0.1:9443. It returns the empty string when the daemon opened no console listener.
 func (s *Server) ConsoleAddress() string { return s.consoleAddress }
@@ -100,7 +128,11 @@ func (s *Server) StartConsole(enabled bool, bindAddress string) error {
 		}
 	}()
 
-	log.Printf("api: the console listens on http://%s and it has no authentication: any local account on this host reaches it and drives the daemon, which runs as root", s.consoleAddress)
+	if s.consolePasswordHash != nil {
+		log.Printf("api: the console listens on http://%s and it asks for the password of console.password_file", s.consoleAddress)
+	} else {
+		log.Printf("api: the console listens on http://%s and it has no authentication: any local account on this host reaches it and drives the daemon, which runs as root", s.consoleAddress)
+	}
 	return nil
 }
 
@@ -122,6 +154,12 @@ func (s *Server) consoleRoutes() http.Handler {
 func (s *Server) consoleControls(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Security-Policy", ConsoleContentSecurityPolicy)
+
+		if !s.consoleAuthorized(r) {
+			w.Header().Set("WWW-Authenticate", `Basic realm="hydrascale", charset="UTF-8"`)
+			http.Error(w, "the console needs the password of console.password_file", http.StatusUnauthorized)
+			return
+		}
 
 		// A browser omits Origin on a same-origin navigation, and a command line client
 		// omits it too, so an absent header is not evidence of a cross-origin request.

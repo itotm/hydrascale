@@ -11,7 +11,9 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"regexp"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -534,13 +536,18 @@ func serveCmd() *cobra.Command {
 
 			fmt.Printf("Hydrascale daemon starting (reconcile every %s)...\n", interval)
 
-			var ha *hostaccess.Manager
+			// The manager exists even when no tailnet asks for host access at start, so a
+			// tailnet that a reload adds with host access gets its routes and names. Before,
+			// such a tailnet got nothing until the daemon restarted. The mode, the route
+			// table and the infra subnet are read here only, so a change needs a restart.
 			dnsMode := cfg.EffectiveHostDNSMode()
-			if dnsMode != "" {
-				ha = hostaccess.NewManager(dnsMode, "/etc/hosts", cfg.InfraSubnet, cfg.RouteTable)
-				if forwarder != nil {
-					ha.SetForwarder(forwarder)
-				}
+			if dnsMode == "" {
+				dnsMode = "hosts"
+			}
+			ha := hostaccess.NewManager(dnsMode, "/etc/hosts", cfg.InfraSubnet, cfg.RouteTable)
+			ha.SetHostIPv6(cfg.HostIPv6Enabled())
+			if forwarder != nil {
+				ha.SetForwarder(forwarder)
 			}
 
 			r := reconciler.New(
@@ -583,15 +590,37 @@ func serveCmd() *cobra.Command {
 			// The console listener is part of the start. A refused bind address and a
 			// port that is in use both stop the daemon, because the operator asked for a
 			// console and a daemon that runs without one hides the failure.
+			if cfg.ConsoleEnabled() && cfg.Console.PasswordFile != "" {
+				password, err := config.LoadConsolePassword(cfg.Console.PasswordFile)
+				if err != nil {
+					cancel()
+					return fmt.Errorf("start the console listener: %w", err)
+				}
+				apiServer.SetConsolePassword(password)
+			}
 			if err := apiServer.StartConsole(cfg.ConsoleEnabled(), cfg.ConsoleBindAddress()); err != nil {
 				cancel()
 				return fmt.Errorf("start the console listener: %w", err)
+			}
+
+			// exit_node is a key that no code applies (audit SA-49). Say so once at start,
+			// so the operator does not believe the traffic leaves through the exit node.
+			for _, tn := range cfg.Tailnets {
+				if tn.ExitNode != "" {
+					log.Printf("config: tailnet %s declares exit_node %q, which the daemon does not apply; "+
+						"run `hydrascale tailscale %s -- set --exit-node=%s` instead. The exit node then "+
+						"carries the traffic of the namespace only, never the traffic of the host",
+						tn.ID, tn.ExitNode, tn.ID, tn.ExitNode)
+				}
 			}
 
 			// Handle SIGHUP in a goroutine
 			go func() {
 				for range reloadChan {
 					fmt.Println("Config reload triggered by SIGHUP")
+					if next, err := config.LoadConfig(configPath()); err == nil {
+						warnRestartKeys(cfg, next)
+					}
 					if err := r.Reconcile(); err != nil {
 						fmt.Fprintf(os.Stderr, "SIGHUP reconcile error: %v\n", err)
 					}
@@ -950,15 +979,11 @@ Run with --dry-run to see what would be done without making changes.`,
 						if err != nil {
 							return fmt.Errorf("cannot find own binary: %w", err)
 						}
-						if self == "/usr/local/bin/hydrascale" {
+						copied, err := installBinary(self, "/usr/local/bin/hydrascale")
+						if err == nil && !copied {
 							fmt.Println("  (already in place)")
-							return nil
 						}
-						data, err := os.ReadFile(self)
-						if err != nil {
-							return err
-						}
-						return os.WriteFile("/usr/local/bin/hydrascale", data, 0755)
+						return err
 					},
 				},
 				{
@@ -1021,4 +1046,60 @@ reconciler:
 	}
 	cmd.Flags().Bool("dry-run", false, "Show what would be done without making changes")
 	return cmd
+}
+
+// installBinary copies the binary at self to target and reports whether it copied it.
+//
+// The check compares the files, not the paths: on Fedora Atomic /usr/local is a symlink
+// to /var/usrlocal, so os.Executable names /var/usrlocal/bin/hydrascale while the target
+// names /usr/local/bin/hydrascale, and a path check copied the running binary onto itself
+// and failed with "text file busy". The copy goes to a temporary file in the target
+// directory and then replaces the target with a rename, which also works while the old
+// binary runs.
+func installBinary(self, target string) (bool, error) {
+	selfInfo, err := os.Stat(self)
+	if err != nil {
+		return false, err
+	}
+	if targetInfo, err := os.Stat(target); err == nil && os.SameFile(selfInfo, targetInfo) {
+		return false, nil
+	}
+	data, err := os.ReadFile(self)
+	if err != nil {
+		return false, err
+	}
+	tmp, err := os.CreateTemp(filepath.Dir(target), ".hydrascale-*")
+	if err != nil {
+		return false, err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return false, err
+	}
+	if err := tmp.Chmod(0755); err != nil {
+		tmp.Close()
+		return false, err
+	}
+	if err := tmp.Close(); err != nil {
+		return false, err
+	}
+	if err := os.Rename(tmp.Name(), target); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// warnRestartKeys logs each key that the daemon reads only at start and that the reloaded
+// configuration changes, because a reload applies the rest and leaves these as they were.
+func warnRestartKeys(started, next *config.Config) {
+	changed := func(key, was, now string) {
+		if was != now {
+			log.Printf("config: %s changed from %q to %q; restart hydrascale to apply it", key, was, now)
+		}
+	}
+	changed("host_dns.mode", started.EffectiveHostDNSMode(), next.EffectiveHostDNSMode())
+	changed("route_table", strconv.Itoa(started.RouteTable), strconv.Itoa(next.RouteTable))
+	changed("infra_subnet", started.InfraSubnet, next.InfraSubnet)
+	changed("host_ipv6", strconv.FormatBool(started.HostIPv6Enabled()), strconv.FormatBool(next.HostIPv6Enabled()))
 }

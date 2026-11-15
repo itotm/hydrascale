@@ -148,7 +148,7 @@ func TestTheReaderReturnsTheErrorOfTheSessionCommand(t *testing.T) {
 	}
 }
 
-func TestTheReaderReturnsTheErrorOfTheRouteCommand(t *testing.T) {
+func TestTheReaderSkipsAnAddressThatTheKernelCannotRoute(t *testing.T) {
 	const one = `LISTEN 0      4096                       0.0.0.0:22            0.0.0.0:*
 ESTAB  0      0                    192.168.1.221:22       100.98.107.70:51402
 `
@@ -157,8 +157,47 @@ ESTAB  0      0                    192.168.1.221:22       100.98.107.70:51402
 	rec.Script(execx.Result{Output: []byte("RTNETLINK answers: Network is unreachable"), Err: errors.New("exit status 2")},
 		"ip", "-json", "route", "get", "100.98.107.70")
 
-	if _, err := NewReaderWith(rec).Paths(context.Background(), devices()); err == nil {
-		t.Fatal("Paths returned no error for a command that failed")
+	paths, err := NewReaderWith(rec).Paths(context.Background(), devices())
+	if err != nil {
+		t.Fatalf("Paths returned the error %v for an address with no route", err)
+	}
+	if len(paths) != 0 {
+		t.Fatalf("Paths returned %v, want no path", paths)
+	}
+}
+
+// A socket that listens on both families reports an IPv4 client as ::ffff:a.b.c.d. On a
+// host with no IPv6 route, `ip route get ::ffff:a.b.c.d` fails, so the reader asks for the
+// IPv4 address instead and reports the path.
+func TestTheReaderUnmapsAnIPv4MappedAddress(t *testing.T) {
+	const mapped = `LISTEN 0      4096                       *:22000                  *:*
+ESTAB  0      0      [::ffff:192.168.1.221]:22000 [::ffff:100.98.107.70]:51402
+ESTAB  0      0      [::ffff:192.168.1.221]:22000 [::ffff:192.168.1.133]:22000
+`
+	rec := execx.NewRecorder(t)
+	rec.Script(execx.Result{Output: []byte(mapped)}, "ss", "-H", "-tna")
+	rec.Script(execx.Result{Output: []byte(routeJSON)}, "ip", "-json", "route", "get", "100.98.107.70")
+	rec.Script(execx.Result{Output: []byte(lanRouteJSON)}, "ip", "-json", "route", "get", "192.168.1.133")
+
+	paths, err := NewReaderWith(rec).Paths(context.Background(), devices())
+	if err != nil {
+		t.Fatalf("Paths returned the error %v", err)
+	}
+	if len(paths) != 1 || paths[0].From != "jbones" {
+		t.Fatalf("Paths returned %v, want one path from jbones", paths)
+	}
+}
+
+func TestUnmapIPv4(t *testing.T) {
+	for in, want := range map[string]string{
+		"::ffff:192.168.0.250": "192.168.0.250",
+		"192.168.0.250":        "192.168.0.250",
+		"fd7a:115c:a1e0::1":    "fd7a:115c:a1e0::1",
+		"*":                    "*",
+	} {
+		if got := unmapIPv4(in); got != want {
+			t.Errorf("unmapIPv4(%q) = %q, want %q", in, got, want)
+		}
 	}
 }
 

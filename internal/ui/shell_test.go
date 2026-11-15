@@ -27,7 +27,8 @@ func readStatic(t *testing.T, name string) string {
 
 // consoleViews are the entries of the left navigation. FR-console-12 names five entries,
 // and FR-policy-22 adds the policy view as the sixth.
-var consoleViews = []string{"overview", "namespaces", "access", "policy", "activity", "settings"}
+// The fork adds the peers view after the namespaces view.
+var consoleViews = []string{"overview", "namespaces", "peers", "access", "policy", "activity", "settings"}
 
 func TestTheNavigationHoldsEveryEntryOfTheShell(t *testing.T) {
 	index := readStatic(t, "index.html")

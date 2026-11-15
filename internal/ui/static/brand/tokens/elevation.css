@@ -5,3 +5,9 @@
   --ring-accent:0 0 0 1px var(--lime);
   --ring-focus:0 0 0 2px color-mix(in srgb, var(--lime) 45%, transparent);
 }
+
+/* The light palette needs a softer pop shadow. */
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){--shadow-pop:0 24px 60px -20px rgba(0,0,0,.25); --shadow-lift:0 1px 0 rgba(0,0,0,.08)}
+}
+:root[data-theme="light"]{--shadow-pop:0 24px 60px -20px rgba(0,0,0,.25); --shadow-lift:0 1px 0 rgba(0,0,0,.08)}

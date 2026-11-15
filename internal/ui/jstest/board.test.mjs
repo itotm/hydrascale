@@ -148,3 +148,25 @@ test("app.css hides the optional columns on a phone and turns over no cell under
   const motion = await readFile(new URL("../static/brand/tokens/motion.css", import.meta.url), "utf8");
   assert.match(motion, /prefers-reduced-motion[\s\S]*--dur-flip:0ms/);
 });
+
+test("a daemon that waits for a login is not healthy on the board, and the row is a fault", () => {
+  // The daemon answers its health check while it waits for a login, so the board reads
+  // the backend state that the reconciler adds to the poll.
+  const { status, model } = poll({ alpha: {}, beta: {} });
+  status.actual.alpha.BackendState = "Running";
+  status.actual.beta.BackendState = "NeedsLogin";
+  const rows = buildBoard(status, model);
+  assert.deepEqual(rows.map((row) => row.id), ["beta", "alpha"]);
+  assert.deepEqual(rows[0].state, { tone: "warn", word: "not authenticated" });
+  assert.equal(rows[0].rank, 1);
+  assert.deepEqual(rows[1].state, { tone: "ok", word: "healthy" });
+});
+
+test("the exit column shows the exit node in use, and a configured one that is unused", () => {
+  const { status, model } = poll({ alpha: { exit: "relay" }, beta: {}, gamma: { exit: "relay" } });
+  status.actual.alpha.BackendState = "Running";
+  status.actual.beta.BackendState = "Running";
+  status.actual.beta.ExitNode = "office";
+  const exits = Object.fromEntries(buildBoard(status, model).map((row) => [row.id, row.exit]));
+  assert.deepEqual(exits, { alpha: "relay (not in use)", beta: "office", gamma: "relay" });
+});

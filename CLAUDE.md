@@ -1,4 +1,16 @@
-# Hydrascale
+# Hydrascale (fork)
+
+This repository is a fork of https://github.com/Crank-Git/Hydrascale, a quick experiment
+for one setup. The rules below are the upstream rules, with these exceptions:
+
+- The console has a light palette next to the dark one (brand/tokens/colors.css), a theme
+  switch, and a peers view (internal/ui/static/peers.js).
+- Work happens on `main`; a release is a tag `v<upstream version>-fork.<n>`, which
+  .github/workflows/release.yml turns into a GitHub release with goreleaser.
+- To follow upstream: `git fetch upstream --tags`, then rebase or merge the new upstream
+  tag and tag again.
+- There is no Go on the development host: run Go through a container, for example
+  `podman run --rm -v "$PWD":/src:Z -w /src docker.io/library/golang:1.26 go test ./...`.
 
 Hydrascale lets one Linux host join several Tailscale tailnets at the same time. The
 daemon creates a network namespace per tailnet and runs a separate `tailscaled` inside
@@ -118,7 +130,8 @@ reach a control API response, and never enter the configuration file. They live 
 
 ### The console
 
-The console is dark only, because the brand is dark only. Use the accent colour for one
+The upstream console is dark only; the fork adds a light palette that follows
+prefers-color-scheme or the theme switch. Use the accent colour for one
 thing per view: the affirmative action, or the current selection, or an allowed path.
 Show a state as a coloured dot and a lowercase word. Render every machine value in the
 mono typeface and every sentence in the sans typeface. Draw no denied path — absence is

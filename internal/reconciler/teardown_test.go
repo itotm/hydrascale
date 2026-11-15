@@ -256,3 +256,25 @@ func statusWithPeer(suffix, hostname, ip string) *daemon.TailscaleStatus {
 		},
 	}
 }
+
+// A tailnet that left the configuration while its namespace was already gone gets no
+// delete action, so the tick prunes its names and routes from the host.
+func TestPruneHostAccessRemovesATailnetThatTheConfigurationNoLongerHolds(t *testing.T) {
+	r, rec, hostsPath := hostAccessTeardownFixture(t)
+
+	r.pruneHostAccess(map[string]config.Tailnet{"home": {ID: "home"}})
+
+	if got := r.ha.ActiveTailnets(); !slices.Equal(got, []string{"home"}) {
+		t.Errorf("active tailnets = %v, want [home]", got)
+	}
+	if got := routeDeletes(rec); !slices.Equal(got, []string{"100.64.0.1"}) {
+		t.Errorf("route removals = %v, want [100.64.0.1]", got)
+	}
+	hosts, err := os.ReadFile(hostsPath)
+	if err != nil {
+		t.Fatalf("read the hosts file: %v", err)
+	}
+	if strings.Contains(string(hosts), "corp-laptop") || !strings.Contains(string(hosts), "home-server") {
+		t.Errorf("the hosts file holds the wrong names:\n%s", hosts)
+	}
+}

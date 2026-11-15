@@ -9,6 +9,7 @@
 // of a tailnet once per poll interval.
 
 import { registerView, requestJSON } from "./app.js";
+import { backendStateOf } from "./board.js";
 
 /** The rule that config.IsValidID applies. internal/ui/namespaces_test.go compares it. */
 export const IDENTIFIER_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,62}$/;
@@ -64,7 +65,7 @@ function stateOf(status, detail, id, removing) {
   if (!actual.DaemonHealthy) {
     return { word: "not healthy", tone: "crit" };
   }
-  return { word: "healthy", tone: "ok" };
+  return backendStateOf(actual.BackendState) || { word: "healthy", tone: "ok" };
 }
 
 /**
@@ -233,7 +234,8 @@ export function buildPanel(status, details, events, id) {
     peerCount: peers.length,
     peerLabel: peerWord(peers.length),
     peers: peers.map((peer) => ({
-      name: peer.host_name || peer.dns_name || ABSENT,
+      // Fork: the MagicDNS label is the name the operator types, so it comes first.
+      name: (peer.dns_name ? peer.dns_name.split(".")[0] : "") || peer.host_name || ABSENT,
       address: (peer.tailscale_ips && peer.tailscale_ips[0]) || ABSENT,
       online: peer.online === true,
     })),

@@ -98,7 +98,9 @@ var validDeviceName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]{0,14}$`)
 // rejects the whole set and runs no command.
 func (rm *ResolvedManager) RegisterDomains(links []Link) error {
 	if len(links) == 0 {
-		return nil
+		// No link carries a domain now. A device that the previous call registered keeps
+		// its server and domains until something reverts it.
+		return rm.revertDropped(nil)
 	}
 
 	for _, l := range links {
@@ -142,7 +144,42 @@ func (rm *ResolvedManager) RegisterDomains(links []Link) error {
 		}
 		registered = append(registered, l.Device)
 	}
+	if err := rm.revertDropped(links); err != nil {
+		errs = append(errs, err)
+	}
 	rm.registered = registered
+	return errors.Join(errs...)
+}
+
+// revertDropped reverts each device that the previous RegisterDomains registered and
+// that links no longer holds, for example the veth of a tailnet whose host_access became
+// false. Before, such a device kept the server and the ~domain of its tailnet, and a
+// query for that domain went to a resolver that no longer answered it. A device that no
+// longer exists needs no revert, so revertDropped skips it.
+func (rm *ResolvedManager) revertDropped(links []Link) error {
+	keep := make(map[string]bool, len(links))
+	for _, l := range links {
+		keep[l.Device] = true
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), hostCommandTimeout)
+	defer cancel()
+	var errs []error
+	var still []string
+	for _, device := range rm.registered {
+		if keep[device] {
+			continue
+		}
+		if _, err := net.InterfaceByName(device); err != nil {
+			continue
+		}
+		if out, err := rm.runner().Run(ctx, "resolvectl", "revert", device); err != nil {
+			errs = append(errs, fmt.Errorf("resolvectl revert %s: %w (%s)", device, err, out))
+			still = append(still, device)
+		}
+	}
+	if len(links) == 0 {
+		rm.registered = still
+	}
 	return errors.Join(errs...)
 }
 

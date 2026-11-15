@@ -1408,3 +1408,133 @@ a.btn:focus-visible{outline:none; box-shadow:var(--ring-focus)}
 
 /* Before a selection, the tailnet list and the document frame share one height. */
 .pol-grid:has(.pol-idle){align-items:stretch}
+
+/* ------------------------------------------------------------------------------------
+   Fork additions: the theme switch, a calmer board in the light palette, and the peers
+   view.
+   ------------------------------------------------------------------------------------ */
+
+.theme-toggle{margin-top:var(--sp-3); width:100%; text-align:left; color:var(--text-secondary)}
+
+/* The split-flap line across each board cell reads as noise on a light surface. */
+:root[data-theme="light"] .board tbody th,
+:root[data-theme="light"] .board tbody td{background-image:none}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]) .board tbody th,
+  :root:not([data-theme="dark"]) .board tbody td{background-image:none}
+}
+
+/* A value that copies itself on a click: it looks like text, and the hover shows that it
+   is a control. */
+.copy{
+  font:inherit;
+  font-family:var(--font-data);
+  font-size:var(--fs-data);
+  font-stretch:var(--stretch-mono);
+  color:inherit;
+  background:transparent;
+  border:0;
+  border-bottom:1px dotted var(--border-default);
+  padding:1px 2px;
+  margin:0;
+  cursor:copy;
+  text-align:left;
+  display:inline-flex;
+  align-items:baseline;
+  gap:var(--sp-2);
+  max-width:100%;
+}
+.copy:hover{background:var(--surface-inset); border-bottom-color:var(--accent)}
+.copy:focus-visible{outline:none; box-shadow:var(--ring-focus)}
+.copy .copy-value{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.copy.copied{border-bottom-color:var(--accent)}
+.copy-flag{font-family:var(--font-body); font-size:var(--fs-micro); color:var(--accent); font-weight:var(--fw-semibold)}
+.peers-offscreen{position:fixed; left:-9999px; top:0}
+
+.peers-tools{display:flex; flex-wrap:wrap; align-items:center; gap:var(--sp-3); margin-bottom:var(--sp-4)}
+.peers-search{min-width:min(420px, 100%); flex:1 1 320px; font-size:var(--fs-body)}
+.peers-check{display:inline-flex; align-items:center; gap:var(--sp-2); color:var(--text-secondary); cursor:pointer}
+.peers-check input{width:18px; height:18px; accent-color:var(--accent)}
+.peers-hint{color:var(--text-tertiary); font-size:var(--fs-sm); flex-basis:100%}
+
+.peers-self{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:var(--sp-3); margin-bottom:var(--sp-4)}
+.peers-self-card{border:1px solid var(--border-default); background:var(--surface-card); padding:var(--sp-3) var(--sp-4)}
+.peers-self-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:var(--sp-3); margin-bottom:var(--sp-2)}
+.peers-self-id{font-size:var(--fs-h3); font-weight:var(--fw-semibold); color:var(--text-body)}
+.peers-self-alias,
+.peers-self-count{color:var(--text-secondary); font-size:var(--fs-sm)}
+.peers-self-count{margin-left:auto}
+.peers-warn{margin:var(--sp-2) 0 0; color:var(--status-warn); font-size:var(--fs-sm)}
+
+.peers-kv{display:grid; grid-template-columns:max-content minmax(0,1fr); column-gap:var(--sp-4); row-gap:var(--sp-1); margin:0}
+.peers-kv dt{color:var(--text-tertiary); font-size:var(--fs-sm)}
+.peers-kv dd{margin:0; display:flex; flex-wrap:wrap; gap:var(--sp-1) var(--sp-3); min-width:0}
+.peers-kv.wide{grid-template-columns:max-content minmax(0,1fr) max-content minmax(0,1fr)}
+@media (max-width: 900px){
+  .peers-kv.wide{grid-template-columns:max-content minmax(0,1fr)}
+}
+
+.peers-count{color:var(--text-secondary); margin:0 0 var(--sp-2)}
+.peers-frame{border:1px solid var(--border-default); overflow-x:auto; background:var(--surface-card)}
+.peers-table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
+.peers-table th,
+.peers-table td{padding:var(--sp-2) var(--sp-3); text-align:left; vertical-align:top; border-bottom:1px solid var(--border-soft)}
+.peers-table thead th{
+  position:sticky; top:0; z-index:1;
+  background:var(--surface-raised);
+  font-size:var(--fs-label);
+  font-weight:var(--fw-medium);
+  letter-spacing:var(--ls-label);
+  text-transform:uppercase;
+  color:var(--text-tertiary);
+  white-space:nowrap;
+}
+.peers-sort{font:inherit; letter-spacing:inherit; text-transform:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer}
+.peers-sort:hover,
+.peers-sort.on{color:var(--text-body)}
+.peers-sort:focus-visible{outline:none; box-shadow:var(--ring-focus)}
+.peers-table tbody tr.peer{cursor:pointer}
+.peers-table tbody tr.peer:hover > *{background:var(--surface-raised)}
+.peers-table tbody tr.peer:focus-visible{outline:none; box-shadow:inset var(--ring-focus)}
+.peers-table tbody tr[aria-expanded="true"] > *{background:var(--surface-inset); border-bottom-color:transparent}
+.peers-table tbody tr.off{color:var(--text-secondary)}
+.peers-table tbody tr.off .peers-strong{color:var(--text-secondary)}
+.peers-name{font-weight:var(--fw-regular); min-width:220px}
+.peers-name-line{display:flex; align-items:center; gap:var(--sp-2)}
+.peers-strong{font-weight:var(--fw-semibold); color:var(--text-body)}
+.peers-sub{margin:2px 0 0 calc(var(--dot) + var(--sp-2)); color:var(--text-secondary)}
+.dot.dim{opacity:.55}
+.peers-conn{white-space:nowrap}
+.peers-conn.direct{color:var(--status-ok)}
+.peers-conn.relay{color:var(--status-warn)}
+.peers-conn.offline,
+.peers-conn.idle{color:var(--text-tertiary)}
+.peers-routes{display:flex; flex-wrap:wrap; gap:var(--sp-1) var(--sp-2); align-items:baseline}
+.peers-table td.peers-routes{display:table-cell}
+.peers-routes > *{margin-right:var(--sp-2)}
+.peers-num,
+.peers-seen{white-space:nowrap}
+.peers-owner{max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.peers-absent{color:var(--text-tertiary)}
+.peers-badge{
+  display:inline-block; padding:0 var(--sp-2);
+  border:1px solid var(--border-default); border-radius:var(--r-pill);
+  font-size:var(--fs-micro); color:var(--text-secondary); white-space:nowrap;
+}
+.peers-badge.accent{border-color:var(--accent); color:var(--accent)}
+.peers-badge.crit{border-color:var(--status-crit); color:var(--status-crit)}
+.peers-table tr.peer-detail > td{background:var(--surface-inset); padding:var(--sp-3) var(--sp-4) var(--sp-4)}
+.peers-state-warn{color:var(--status-warn); font-weight:var(--fw-semibold)}
+.peers-login{color:var(--accent); font-weight:var(--fw-semibold)}
+.peers-tailnets:empty{display:none}
+.peers-name{min-width:0}
+/* The second line of a peer, its short name, stays narrow, so the table fits a laptop
+   screen without a horizontal scroll. */
+.peers-sub .copy{font-size:var(--fs-micro); font-stretch:75%; color:var(--text-secondary)}
+.peers-table td,
+.peers-table th{padding-left:var(--sp-2); padding-right:var(--sp-2)}
+.peers-table td:first-child,
+.peers-table th:first-child{padding-left:var(--sp-3)}
+/* The topology draws fixed boxes, so its text keeps the upstream size and width. */
+.node text.n{font-size:13px; font-stretch:75%}
+.node text.s{font-size:12px; font-stretch:75%}

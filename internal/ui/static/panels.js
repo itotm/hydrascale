@@ -483,7 +483,7 @@ export function settingsModel(status, interval, host) {
   ].map((row) => ({ ...row, reported: row.value !== "" }));
 
   const paths = rows.filter((row) => row.label !== "poll interval");
-  return { rows, ready: paths.some((row) => row.reported) };
+  return { rows, ready: paths.some((row) => row.reported), consolePassword: body.console_password === true };
 }
 
 /**
@@ -507,10 +507,15 @@ export function settingsMarkup(model) {
   // records the accepted risk and it names the four controls that reduce it.
   parts.push(
     '<section class="frame"><div class="frame-head"><h2 class="frame-title">Console</h2></div>' +
-      alert("warn", [
-        "The console has no authentication. Any local account on this host reaches this address and drives the daemon, which runs as root.",
-        "The daemon binds a loopback address only. Reach the console of another host through an SSH tunnel rather than through a wider bind address.",
-      ]) +
+      (model.consolePassword
+        ? alert("ok", [
+          "The console asks for the password of console.password_file. A local account without the password reaches the address and gets HTTP 401.",
+          "The daemon binds a loopback address only. Reach the console of another host through an SSH tunnel rather than through a wider bind address.",
+        ])
+        : alert("warn", [
+          "The console has no authentication. Any local account on this host reaches this address and drives the daemon, which runs as root. Set console.password_file to ask for a password.",
+          "The daemon binds a loopback address only. Reach the console of another host through an SSH tunnel rather than through a wider bind address.",
+        ])) +
       '<p class="note">The daemon records one event for every mutating request on the console listener. <a href="#/activity">The activity view</a> lists them.</p>' +
       "</section>",
   );

@@ -36,4 +36,7 @@ changelog:
   use: github-native
 
 release:
-  prerelease: auto
+  # The fork tags releases as v<upstream>-fork.<n>. Semver reads the suffix as a
+  # pre-release, and GitHub leaves a pre-release out of releases/latest, which the
+  # horizon-os build reads. Every fork release is therefore a full release.
+  prerelease: false

@@ -1,5 +1,6 @@
 /* Hydrascale, 2026 rebrand. Warm near-black, one acid accent, three states.
-   Dark only — this is an operator console, not a content site. */
+   Fork: the dark palette stays the default, and a light palette below follows
+   prefers-color-scheme, or the theme switch of the navigation (html[data-theme]). */
 :root{
   color-scheme:dark;
 
@@ -50,4 +51,52 @@
   --edge-deny:#332b28;
   --steel:#45413c;            /* the one frame strip around the board */
   --scrim:color-mix(in srgb, #060605 72%, transparent);
+}
+
+/* The light palette. The accent turns into a dark green, because the acid lime is not
+   readable on a light surface; it keeps the role of the lime. Every text step holds a
+   contrast of 4.5:1 or more on the card surface. */
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    color-scheme:light;
+    --ink:#f4f2ee;
+    --s1:#ffffff;
+    --s2:#ece9e3;
+    --s3:#e3dfd8;
+    --line:#cfcac1;
+    --line-soft:#e6e2db;
+    --tx:#1a1917;
+    --mu:#4f4a43;
+    --dim:#69625a;
+    --lime:#3d6b00;
+    --lime-ink:#ffffff;
+    --ok:#1d7a34;
+    --warn:#9a5a00;
+    --crit:#c0281c;
+    --edge:#8c8478;
+    --edge-deny:#e2dcd6;
+    --steel:#c4beb4;
+    --scrim:color-mix(in srgb, #1a1917 40%, transparent);
+  }
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --ink:#f4f2ee;
+  --s1:#ffffff;
+  --s2:#ece9e3;
+  --s3:#e3dfd8;
+  --line:#cfcac1;
+  --line-soft:#e6e2db;
+  --tx:#1a1917;
+  --mu:#4f4a43;
+  --dim:#69625a;
+  --lime:#3d6b00;
+  --lime-ink:#ffffff;
+  --ok:#1d7a34;
+  --warn:#9a5a00;
+  --crit:#c0281c;
+  --edge:#8c8478;
+  --edge-deny:#e2dcd6;
+  --steel:#c4beb4;
+  --scrim:color-mix(in srgb, #1a1917 40%, transparent);
 }

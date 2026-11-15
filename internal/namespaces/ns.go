@@ -480,10 +480,16 @@ func (m *RealManager) SetupHostAccess(nsName string, index int, infraSubnet stri
 		return fmt.Errorf("host-access: enable forwarding in %s: %v (%s)", nsName, err, out)
 	}
 
+	// added names each rule that this call wrote. The reconciler calls SetupHostAccess on
+	// every tick, so the function logs the rules it added and not the rules it found.
+	var added []string
+
 	// Masquerade on tailscale0
 	if _, err := m.run("ip", "netns", "exec", nsName, "iptables", "-t", "nat", "-C", "POSTROUTING", "-s", nsIPRange, "-o", "tailscale0", "-j", "MASQUERADE"); err != nil {
 		if out, err := m.run("ip", "netns", "exec", nsName, "iptables", "-t", "nat", "-A", "POSTROUTING", "-s", nsIPRange, "-o", "tailscale0", "-j", "MASQUERADE"); err != nil {
 			log.Printf("host-access: failed to add tailscale0 masquerade in %s: %v (%s)", nsName, err, out)
+		} else {
+			added = append(added, "tailscale0 masquerade")
 		}
 	}
 
@@ -491,6 +497,8 @@ func (m *RealManager) SetupHostAccess(nsName string, index int, infraSubnet stri
 	if _, err := m.run("ip", "netns", "exec", nsName, "iptables", "-t", "nat", "-C", "PREROUTING", "-i", nsVeth, "-p", "udp", "--dport", "53", "-j", "DNAT", "--to-destination", "100.100.100.100:53"); err != nil {
 		if out, err := m.run("ip", "netns", "exec", nsName, "iptables", "-t", "nat", "-A", "PREROUTING", "-i", nsVeth, "-p", "udp", "--dport", "53", "-j", "DNAT", "--to-destination", "100.100.100.100:53"); err != nil {
 			log.Printf("host-access: failed to add DNS DNAT (UDP) in %s: %v (%s)", nsName, err, out)
+		} else {
+			added = append(added, "DNS DNAT (UDP)")
 		}
 	}
 
@@ -498,6 +506,8 @@ func (m *RealManager) SetupHostAccess(nsName string, index int, infraSubnet stri
 	if _, err := m.run("ip", "netns", "exec", nsName, "iptables", "-t", "nat", "-C", "PREROUTING", "-i", nsVeth, "-p", "tcp", "--dport", "53", "-j", "DNAT", "--to-destination", "100.100.100.100:53"); err != nil {
 		if out, err := m.run("ip", "netns", "exec", nsName, "iptables", "-t", "nat", "-A", "PREROUTING", "-i", nsVeth, "-p", "tcp", "--dport", "53", "-j", "DNAT", "--to-destination", "100.100.100.100:53"); err != nil {
 			log.Printf("host-access: failed to add DNS DNAT (TCP) in %s: %v (%s)", nsName, err, out)
+		} else {
+			added = append(added, "DNS DNAT (TCP)")
 		}
 	}
 
@@ -515,7 +525,9 @@ func (m *RealManager) SetupHostAccess(nsName string, index int, infraSubnet stri
 	if publishErr != nil {
 		return fmt.Errorf("%w in %s: %w", ErrPublishedPorts, nsName, publishErr)
 	}
-	log.Printf("Set up host access rules for namespace %s", nsName)
+	if len(added) > 0 {
+		log.Printf("host-access: added %s in namespace %s", strings.Join(added, ", "), nsName)
+	}
 	return nil
 }
 

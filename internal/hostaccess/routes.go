@@ -330,6 +330,11 @@ func diffRoutes(desired, actual []string) (toAdd, toRemove []string) {
 // the route destinations (subnet routes accepted by tailscaled via --accept-routes).
 func (m *Manager) listNsTableRoutes(nsName string, infraSubnet string) ([]string, error) {
 	out, err := m.run("ip", "netns", "exec", nsName, "ip", "route", "show", "table", "52")
+	if err != nil && tableIsEmpty(string(out)) {
+		// tailscaled creates table 52 when it comes up. A tailnet that waits for its
+		// login holds no table yet, which is no failure: it serves no route.
+		return nil, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("ip netns exec %s ip route show table 52: %w", nsName, err)
 	}
@@ -437,7 +442,8 @@ func (m *Manager) skipReasonForRoute(dest string, v6 bool) string {
 	}
 	dev, hasVia, table := parseRouteGetOutput(string(out))
 	if strings.HasPrefix(dev, "vh") {
-		// One of ours (or a sibling tailnet's). Replace is idempotent / safe.
+		// One of ours, and a replace is safe. A route that another tailnet holds is left to
+		// that tailnet by dropSiblingRoutes, which reads the route table.
 		return ""
 	}
 	// A table that the kernel names is not the main table, and `ip rule` reaches it first.
@@ -479,14 +485,36 @@ func (m *Manager) filterWritableRoutes(candidates []string, v6 bool) []string {
 	}
 	for _, reason := range slices.Sorted(maps.Keys(skipped)) {
 		dests := skipped[reason]
-		if len(dests) == 1 {
-			log.Printf("hostaccess: the daemon writes no route to %s, because %s", dests[0], reason)
-			continue
-		}
-		log.Printf("hostaccess: the daemon writes no route to %d addresses, %s among them, because %s",
+		line := fmt.Sprintf("hostaccess: the daemon writes no route to %d addresses, %s among them, because %s",
 			len(dests), dests[0], reason)
+		if len(dests) == 1 {
+			line = fmt.Sprintf("hostaccess: the daemon writes no route to %s, because %s", dests[0], reason)
+		}
+		if m.shouldLogSkip(line) {
+			log.Print(line)
+		}
 	}
 	return out
+}
+
+// skipLogInterval is how long the same "writes no route" line stays out of the log after
+// it reached it.
+const skipLogInterval = time.Hour
+
+// shouldLogSkip reports whether line reaches the log now: the first time, and again once
+// skipLogInterval has passed.
+func (m *Manager) shouldLogSkip(line string) bool {
+	m.skipMu.Lock()
+	defer m.skipMu.Unlock()
+	now := time.Now()
+	if last, ok := m.skipLogged[line]; ok && now.Sub(last) < skipLogInterval {
+		return false
+	}
+	if m.skipLogged == nil {
+		m.skipLogged = make(map[string]time.Time)
+	}
+	m.skipLogged[line] = now
+	return true
 }
 
 // hostRouteRuleArgs returns the arguments of one `ip rule` command of the daemon. The
@@ -632,6 +660,15 @@ func (m *Manager) SyncHostRoutes(peers TailnetPeers) error {
 
 	var errs []error
 	for _, v6 := range []bool{false, true} {
+		if v6 && m.noHostIPv6 {
+			// host_ipv6: false. A rule that an earlier start wrote goes away.
+			if m.routeTable != 0 {
+				if err := m.removeHostRouteRule(true); err != nil {
+					errs = append(errs, err)
+				}
+			}
+			continue
+		}
 		if err := m.ensureHostRouteRule(v6); err != nil {
 			errs = append(errs, err)
 		}
@@ -650,12 +687,14 @@ func (m *Manager) SyncHostRoutes(peers TailnetPeers) error {
 		if err != nil {
 			log.Printf("hostaccess: failed to read table 52 v4 routes from %s: %v", peers.NsName, err)
 		}
-		nsV6, err := m.listNsTableRoutesV6(peers.NsName)
-		if err != nil {
-			log.Printf("hostaccess: failed to read table 52 v6 routes from %s: %v", peers.NsName, err)
-		}
 		wantV4 = mergeRoutes(wantV4, nsV4)
-		wantV6 = mergeRoutes(wantV6, nsV6)
+		if !m.noHostIPv6 {
+			nsV6, err := m.listNsTableRoutesV6(peers.NsName)
+			if err != nil {
+				log.Printf("hostaccess: failed to read table 52 v6 routes from %s: %v", peers.NsName, err)
+			}
+			wantV6 = mergeRoutes(wantV6, nsV6)
+		}
 	}
 
 	// Drop any candidate that would shadow a directly-connected host LAN
@@ -684,6 +723,13 @@ func (m *Manager) SyncHostRoutes(peers TailnetPeers) error {
 
 	actualV4 := parseHostRoutes(string(v4Out), vethDev, infraSubnet)
 	actualV6 := parseHostRoutesV6(string(v6Out), vethDev)
+
+	// Two tailnets that accept the same subnet route both want it. Each replace moved the
+	// route to its own device, so the route flapped between the tailnets on every tick.
+	// The tailnet that wrote the route first keeps it, and the other one takes it over
+	// once that route goes away.
+	wantV4 = m.dropSiblingRoutes(wantV4, siblingRouteDevices(string(v4Out), vethDev), vethDev)
+	wantV6 = m.dropSiblingRoutes(wantV6, siblingRouteDevices(string(v6Out), vethDev), vethDev)
 
 	addV4, delV4 := diffRoutes(wantV4, actualV4)
 	addV6, delV6 := diffRoutes(wantV6, actualV6)
@@ -722,6 +768,53 @@ func (m *Manager) SyncHostRoutes(peers TailnetPeers) error {
 	}
 
 	return errors.Join(errs...)
+}
+
+// hostRouteKey returns dest without the prefix length of a single address, because
+// `ip route show` prints a host route without it.
+func hostRouteKey(dest string) string {
+	if strings.HasSuffix(dest, "/32") || strings.HasSuffix(dest, "/128") {
+		return dest[:strings.LastIndex(dest, "/")]
+	}
+	return dest
+}
+
+// siblingRouteDevices returns the device of every route in the `ip route show` output
+// that another tailnet of the daemon holds: a device named vh* other than vethDev.
+func siblingRouteDevices(output string, vethDev string) map[string]string {
+	out := make(map[string]string)
+	for _, line := range strings.Split(output, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 3 {
+			continue
+		}
+		dev, _, _ := parseRouteGetOutput(line)
+		if strings.HasPrefix(dev, "vh") && dev != vethDev {
+			out[hostRouteKey(fields[0])] = dev
+		}
+	}
+	return out
+}
+
+// dropSiblingRoutes returns want without the destinations that another tailnet already
+// routes, and it records one line for them, at most once per skipLogInterval.
+func (m *Manager) dropSiblingRoutes(want []string, siblings map[string]string, vethDev string) []string {
+	if len(siblings) == 0 {
+		return want
+	}
+	out := make([]string, 0, len(want))
+	for _, dest := range want {
+		if dev, taken := siblings[hostRouteKey(dest)]; taken {
+			line := fmt.Sprintf("hostaccess: the daemon writes no route to %s on %s, because another tailnet routes that address on %s",
+				dest, vethDev, dev)
+			if m.shouldLogSkip(line) {
+				log.Print(line)
+			}
+			continue
+		}
+		out = append(out, dest)
+	}
+	return out
 }
 
 // mergeRoutes merges two route lists, deduplicating by destination.

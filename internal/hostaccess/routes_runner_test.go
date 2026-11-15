@@ -684,3 +684,46 @@ func TestDesiredServiceRoutesReturnsEveryAddressOfEveryService(t *testing.T) {
 		t.Errorf("v6 = %v, want [fd7a:115c:a1e0::4242]", v6)
 	}
 }
+
+func TestSyncHostRoutesLeavesARouteThatAnotherTailnetHoldsToThatTailnet(t *testing.T) {
+	// Two tailnets that accept the same subnet route both want it. A replace moved the
+	// route to the device of the tailnet that synchronised last, so it flapped every tick.
+	peers := TailnetPeers{
+		TailnetID:   "corp",
+		VethGateway: "10.200.0.1",
+		VethHost:    "vh001",
+		NsName:      "ns-corp",
+	}
+	rec := execx.NewRecorder(t)
+	rec.Script(execx.Result{Output: []byte("10.0.5.0/24 dev tailscale0\n")},
+		"ip", "netns", "exec", "ns-corp", "ip", "route", "show", "table", "52")
+	rec.Script(execx.Result{}, "ip", "netns", "exec", "ns-corp", "ip", "-6", "route", "show", "table", "52")
+	rec.Script(execx.Result{Output: []byte("10.0.5.0 via 10.200.0.5 dev vh002 src 10.200.0.6\n")},
+		"ip", "route", "get", "10.0.5.0")
+	rec.Script(execx.Result{Output: []byte("10.0.5.0/24 via 10.200.0.5 dev vh002\n")}, "ip", "route", "show")
+	rec.Script(execx.Result{}, "ip", "-6", "route", "show")
+
+	m := NewManager("hosts", filepath.Join(t.TempDir(), "hosts"), "10.200.0.0/16", 0)
+	m.Runner = rec
+	if err := m.SyncHostRoutes(peers); err != nil {
+		t.Fatalf("SyncHostRoutes: %v", err)
+	}
+	for _, c := range rec.Calls() {
+		if len(c.Args) > 1 && (c.Args[1] == "replace" || c.Args[1] == "del") {
+			t.Errorf("SyncHostRoutes ran %s, want no change to the route of the other tailnet", c)
+		}
+	}
+}
+
+func TestHostRouteKeyDropsThePrefixOfASingleAddress(t *testing.T) {
+	for in, want := range map[string]string{
+		"100.64.0.1/32":         "100.64.0.1",
+		"fd7a:115c:a1e0::1/128": "fd7a:115c:a1e0::1",
+		"10.0.5.0/24":           "10.0.5.0/24",
+		"100.64.0.1":            "100.64.0.1",
+	} {
+		if got := hostRouteKey(in); got != want {
+			t.Errorf("hostRouteKey(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

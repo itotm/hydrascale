@@ -86,6 +86,12 @@ type TailnetState struct {
 	// runs; this field states what one packet did. The two answer different questions,
 	// therefore a namespace reports both.
 	MeasuredReachability *reach.Result `json:"measured_reachability"`
+	// BackendState is the state of the tailscaled of the namespace, such as Running or
+	// NeedsLogin, and ExitNode names the peer that the namespace uses as exit node. Both
+	// are empty when the daemon is not healthy or its status does not answer. The console
+	// reads them, so a tailnet that waits for a login is not "healthy".
+	BackendState string `json:"BackendState,omitempty"`
+	ExitNode     string `json:"ExitNode,omitempty"`
 }
 
 // Event represents a structured reconciler event for debugging and future API use.
@@ -107,12 +113,15 @@ type Reconciler struct {
 	infraSubnet string
 
 	mu            sync.Mutex
-	failureCounts map[string]int    // tailnetID -> consecutive failure count
-	errorStates   map[string]bool   // tailnetID -> true if in error state
-	pausedStates  map[string]bool   // tailnetID -> true if manually disconnected
-	lastErrors    map[string]string // tailnetID -> last error message
-	unprotected   map[string]string // tailnetID -> the reported overlay mount error
-	events        []Event
+	failureCounts map[string]int  // tailnetID -> consecutive failure count
+	errorStates   map[string]bool // tailnetID -> true if in error state
+	pausedStates  map[string]bool // tailnetID -> true if manually disconnected
+	// lastAuthAttempt holds the time of the last login attempt with an auth key, per
+	// tailnet, for a node that waits for a login. See authRetryDue.
+	lastAuthAttempt map[string]time.Time
+	lastErrors      map[string]string // tailnetID -> last error message
+	unprotected     map[string]string // tailnetID -> the reported overlay mount error
+	events          []Event
 
 	// jumpPositions holds the position of the jump rule of the daemon in each parent
 	// chain, as the last tick measured it. A parent chain that holds no jump rule gets
@@ -479,12 +488,52 @@ func (r *Reconciler) ActualState() (map[string]*TailnetState, error) {
 			if err == nil {
 				state.Routes = routes
 			}
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			if status, err := r.dm.GetStatus(ctx, nsName, tailnetID); err == nil && status != nil {
+				state.BackendState = status.BackendState
+				state.ExitNode = exitNodeOf(status)
+			}
+			cancel()
 		}
 
 		actual[tailnetID] = state
 	}
 
 	return actual, nil
+}
+
+// authRetryInterval is the least time between two login attempts with an auth key for a
+// tailnet that waits for a login.
+const authRetryInterval = 5 * time.Minute
+
+// authRetryDue reports whether a tailnet may get a new login attempt now, and records the
+// attempt when it may.
+func (r *Reconciler) authRetryDue(id string) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.lastAuthAttempt == nil {
+		r.lastAuthAttempt = make(map[string]time.Time)
+	}
+	if last, ok := r.lastAuthAttempt[id]; ok && time.Since(last) < authRetryInterval {
+		return false
+	}
+	r.lastAuthAttempt[id] = time.Now()
+	return true
+}
+
+// exitNodeOf returns the first label of the MagicDNS name of the peer that the namespace
+// uses as exit node, or the empty string.
+func exitNodeOf(status *daemon.TailscaleStatus) string {
+	for _, peer := range status.Peer {
+		if !peer.ExitNode {
+			continue
+		}
+		if name, _, _ := strings.Cut(strings.TrimSuffix(peer.DNSName, "."), "."); name != "" {
+			return name
+		}
+		return peer.HostName
+	}
+	return ""
 }
 
 // lastReachability returns the measurement that the last tick made for the tailnet.
@@ -509,6 +558,28 @@ func (r *Reconciler) Diff(desired map[string]config.Tailnet, actual map[string]*
 	var actions []Action
 
 	cfg, cfgErr := config.LoadConfig(r.configPath)
+
+	// The error and pause states belong to a tailnet of the configuration. A tailnet that
+	// the configuration no longer holds drops them, so a tailnet that the operator removes
+	// and adds again starts clean. Before, Diff skipped the added tailnet on every tick
+	// until the operator pressed connect.
+	r.mu.Lock()
+	for id := range r.errorStates {
+		if _, ok := desired[id]; !ok {
+			delete(r.errorStates, id)
+		}
+	}
+	for id := range r.pausedStates {
+		if _, ok := desired[id]; !ok {
+			delete(r.pausedStates, id)
+		}
+	}
+	for id := range r.failureCounts {
+		if _, ok := desired[id]; !ok {
+			delete(r.failureCounts, id)
+		}
+	}
+	r.mu.Unlock()
 
 	// Create/start tailnets that should exist but don't
 	for id := range desired {
@@ -559,6 +630,20 @@ func (r *Reconciler) Diff(desired map[string]config.Tailnet, actual map[string]*
 			// waits therefore keeps the action on this branch, until the refresh runs.
 			if r.dnsRefreshWaits(id) {
 				actions = append(actions, Action{Type: ActionRefreshDNS, TailnetID: id, NsName: ns})
+			}
+			// The auth key reached tailscaled only on the tick that created the namespace.
+			// A first `tailscale up` that failed (control server unreachable, a socket that
+			// took more than 30 s) left the node waiting for a login for good. A node that
+			// still waits and that holds an auth key gets a new attempt, at most once per
+			// authRetryInterval.
+			if state.BackendState == "NeedsLogin" {
+				if authKey := config.ResolveAuthKey(id, desired[id].AuthKey); authKey != "" && r.authRetryDue(id) {
+					var controlURL string
+					if cfgErr == nil {
+						controlURL = config.ResolveControlURL(desired[id].ControlURL, cfg.ControlURL)
+					}
+					actions = append(actions, Action{Type: ActionAuthDaemon, TailnetID: id, NsName: ns, AuthKey: authKey, ControlURL: controlURL})
+				}
 			}
 			// Daemon healthy, sync routes
 			actions = append(actions, Action{Type: ActionSyncRoutes, TailnetID: id, NsName: ns})
@@ -619,6 +704,26 @@ func (r *Reconciler) Apply(actions []Action) {
 		} else {
 			r.clearFailure(id)
 		}
+	}
+}
+
+// pruneHostAccess removes the host names and routes of every tailnet that the
+// configuration no longer holds. The delete action removes them only for a namespace
+// that still exists, so a tailnet whose namespace went away first kept its names in the
+// hosts block and its split DNS domains until the daemon restarted.
+func (r *Reconciler) pruneHostAccess(desired map[string]config.Tailnet) {
+	if r.ha == nil {
+		return
+	}
+	for _, id := range r.ha.ActiveTailnets() {
+		if _, wanted := desired[id]; wanted {
+			continue
+		}
+		if err := r.ha.Teardown(id); err != nil {
+			r.emit("teardown.failed", id, fmt.Sprintf("remove the host access state of %s: %v", id, err))
+			continue
+		}
+		log.Printf("host-access: removed the names and routes of %s, which the configuration no longer holds", id)
 	}
 }
 
@@ -954,6 +1059,8 @@ func (r *Reconciler) Reconcile() error {
 		r.emit("reconcile_apply", "", fmt.Sprintf("%d actions", len(actions)))
 		r.Apply(actions)
 	}
+
+	r.pruneHostAccess(desired)
 
 	// Runs after Apply, because Apply clears the last error of a tailnet whose actions
 	// all succeeded, and an unprotected namespace must keep its error.
@@ -1589,7 +1696,20 @@ func (r *Reconciler) emit(eventType, tailnetID, message string) {
 		Message:   message,
 	}
 
+	routine := isRoutineEvent(eventType, message)
+
 	r.mu.Lock()
+	if routine {
+		// A routine event repeats on every tick. The list keeps the newest copy of each one
+		// only, so the ticks do not push the real events out of the 1000 entries: with three
+		// tailnets a tick writes 13 routine events, and the list held about 13 minutes.
+		for at, held := range r.events {
+			if held.Type == eventType && held.TailnetID == tailnetID && (eventType != "action_ok" || held.Message == message) {
+				r.events = append(r.events[:at], r.events[at+1:]...)
+				break
+			}
+		}
+	}
 	if len(r.events) >= 1000 {
 		// Drop oldest events
 		r.events = r.events[1:]
@@ -1597,6 +1717,12 @@ func (r *Reconciler) emit(eventType, tailnetID, message string) {
 	r.events = append(r.events, event)
 	f := r.eventFile
 	r.mu.Unlock()
+
+	// A routine event reaches neither the log nor the event log file: it fills the journal
+	// with the same lines every ten seconds and states nothing that changed.
+	if routine {
+		return
+	}
 
 	// Log to stderr
 	if tailnetID != "" {
@@ -1617,6 +1743,20 @@ func (r *Reconciler) emit(eventType, tailnetID, message string) {
 		})
 		f.Write(append(jsonEvent, '\n'))
 	}
+}
+
+// isRoutineEvent reports whether an event repeats on every reconcile tick of a healthy
+// host: the tick markers, and the success of the route and host access syncs that every
+// tick runs for every tailnet. The console reads the newest reconcile_complete event for
+// the time of the last tick, so the event list still keeps one copy of each.
+func isRoutineEvent(eventType, message string) bool {
+	switch eventType {
+	case "reconcile_start", "reconcile_apply", "reconcile_complete":
+		return true
+	case "action_ok":
+		return message == string(ActionSyncRoutes) || message == string(ActionSyncHostAccess)
+	}
+	return false
 }
 
 // lockPathFor returns the lock file path for a given config path.

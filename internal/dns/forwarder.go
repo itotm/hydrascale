@@ -195,14 +195,7 @@ func (f *Forwarder) handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 	// Determine upstream based on domain routing
 	var upstream string
 	if len(r.Question) > 0 {
-		qname := strings.TrimSuffix(r.Question[0].Name, ".")
-		qname = strings.ToLower(qname)
-		for suffix, addr := range routes {
-			if strings.HasSuffix(qname, suffix) || qname == suffix {
-				upstream = addr
-				break
-			}
-		}
+		upstream = routeFor(routes, r.Question[0].Name)
 	}
 
 	if upstream == "" {
@@ -211,7 +204,15 @@ func (f *Forwarder) handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 		upstream = upstreams[int(idx)%len(upstreams)]
 	}
 
-	resp, _, err := f.client.Exchange(r, upstream+":53")
+	// A query that arrived over TCP goes out over TCP: a client retries over TCP after a
+	// truncated answer, and a UDP exchange returned the truncated answer again.
+	client := f.client
+	if _, isTCP := w.RemoteAddr().(*net.TCPAddr); isTCP {
+		tcp := *f.client
+		tcp.Net = "tcp"
+		client = &tcp
+	}
+	resp, _, err := client.Exchange(r, net.JoinHostPort(upstream, "53"))
 	if err != nil {
 		log.Printf("DNS forward error to %s: %v", upstream, err)
 		msg := new(dns.Msg)
@@ -226,6 +227,26 @@ func (f *Forwarder) handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 	if err := w.WriteMsg(resp); err != nil {
 		log.Printf("dns: write error: %v", err)
 	}
+}
+
+// routeFor returns the upstream of the longest domain suffix in routes that name equals or
+// ends with on a label boundary, or the empty string. Before, the forwarder took the first
+// suffix of a map iteration that matched as a plain string suffix, so the split domain
+// corp.example.com also caught notcorp.example.com, and two nested split domains reached
+// a random tailnet.
+func routeFor(routes map[string]string, name string) string {
+	qname := strings.ToLower(strings.TrimSuffix(name, "."))
+	best, upstream := -1, ""
+	for suffix, addr := range routes {
+		s := strings.ToLower(strings.Trim(suffix, "."))
+		if s == "" {
+			continue
+		}
+		if (qname == s || strings.HasSuffix(qname, "."+s)) && len(s) > best {
+			best, upstream = len(s), addr
+		}
+	}
+	return upstream
 }
 
 // ParseResolvConf reads a resolv.conf file and returns the nameserver addresses.

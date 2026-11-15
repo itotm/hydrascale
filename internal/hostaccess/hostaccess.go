@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"hydrascale/internal/daemon"
 	"hydrascale/internal/dns"
@@ -46,8 +47,19 @@ type Manager struct {
 	// Runner with an execx.Recorder and asserts the exact argument list.
 	Runner execx.Runner
 
-	mu          sync.Mutex
-	dnsMode     string // "hosts" or "resolved"
+	mu      sync.Mutex
+	dnsMode string // "hosts" or "resolved"
+
+	// skipMu guards skipLogged, which holds the time each "writes no route" line last
+	// reached the log. The reconciler checks the routes every tick, and a line that states
+	// the same fact every ten seconds filled the journal.
+	skipMu     sync.Mutex
+	skipLogged map[string]time.Time
+
+	// noHostIPv6 holds the negation of the configuration key host_ipv6. With the value
+	// true, the Manager writes no IPv6 route, no IPv6 routing policy rule and no IPv6
+	// record on the host, and the alias zones answer no AAAA query.
+	noHostIPv6  bool
 	hostsPath   string
 	infraSubnet string
 	// routeTable is the routing table that holds every route the Manager writes on the
@@ -114,6 +126,26 @@ func NewManager(dnsMode string, hostsPath string, infraSubnet string, routeTable
 		m.resolved = NewResolvedManager()
 	}
 	return m
+}
+
+// SetHostIPv6 sets whether the Manager writes the IPv6 addresses of the peers on the host.
+// Call it before the first Sync.
+func (m *Manager) SetHostIPv6(enabled bool) { m.noHostIPv6 = !enabled }
+
+// withoutIPv6 returns peers with every IPv6 address removed.
+func withoutIPv6(peers TailnetPeers) TailnetPeers {
+	out := peers
+	out.Peers = make([]Peer, len(peers.Peers))
+	for i, p := range peers.Peers {
+		p.IPv6 = ""
+		out.Peers[i] = p
+	}
+	out.Services = make([]Service, len(peers.Services))
+	for i, sv := range peers.Services {
+		sv.IPv6 = nil
+		out.Services[i] = sv
+	}
+	return out
 }
 
 // runner returns the command runner. A Manager with no Runner runs on the host.
@@ -184,6 +216,9 @@ func (m *Manager) SplitDNSReport() []SplitDNSEntry {
 // Sync updates host routes and DNS for a tailnet's peers.
 func (m *Manager) Sync(tailnetID string, status *daemon.TailscaleStatus, vethGW, vethHost, vethHostIP, nsName string) {
 	peers := ParsePeers(tailnetID, status, vethGW, vethHost, vethHostIP, nsName)
+	if m.noHostIPv6 {
+		peers = withoutIPv6(peers)
+	}
 
 	if len(peers.Peers) == 0 && status == nil {
 		return
@@ -224,6 +259,19 @@ func (m *Manager) Teardown(tailnetID string) error {
 		errs = append(errs, err)
 	}
 	return errors.Join(errs...)
+}
+
+// ActiveTailnets returns the identifiers of the tailnets whose names and routes the
+// Manager holds on the host, sorted.
+func (m *Manager) ActiveTailnets() []string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	ids := make([]string, 0, len(m.activeTailnets))
+	for id := range m.activeTailnets {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	return ids
 }
 
 // TeardownAll removes all host access state. Called during shutdown.

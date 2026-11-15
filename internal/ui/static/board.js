@@ -62,7 +62,25 @@ export function stateOf(status, id) {
   if (!actual.DaemonHealthy) {
     return { tone: "crit", word: "not healthy" };
   }
-  return { tone: "ok", word: "healthy" };
+  return backendStateOf(actual.BackendState) || { tone: "ok", word: "healthy" };
+}
+
+/**
+ * backendStateOf returns the state of a daemon that answers but does not run the tailnet,
+ * or null when it runs or the poll holds no backend state. A daemon that waits for a login
+ * answers its health check, so only the backend state tells it apart from a working one.
+ */
+export function backendStateOf(backend) {
+  if (!backend || backend === "Running") {
+    return null;
+  }
+  const words = {
+    NeedsLogin: "not authenticated",
+    NeedsMachineAuth: "awaiting approval",
+    Stopped: "stopped",
+    Starting: "starting",
+  };
+  return { tone: "warn", word: words[backend] || backend.toLowerCase() };
 }
 
 /**
@@ -86,6 +104,23 @@ export function policyOf(status, id) {
     return { tone: "crit", word: "credential rejected" };
   }
   return { tone: "", word: "no credential" };
+}
+
+/**
+ * exitOf returns the exit node that the daemon uses. A configured exit node that the
+ * daemon does not use reads as such, because traffic then leaves directly.
+ */
+function exitOf(desired, actual) {
+  const used = actual && actual.ExitNode;
+  if (used) {
+    return used;
+  }
+  const wanted = desired && desired.ExitNode;
+  if (!wanted) {
+    return ABSENT;
+  }
+  // Without a backend state the daemon status was not read, so nothing says it is unused.
+  return actual && actual.BackendState ? `${wanted} (not in use)` : wanted;
 }
 
 /** hostAccessWord states the host access of a tailnet. A null value follows the file. */
@@ -124,7 +159,7 @@ export function buildBoard(status, model) {
         target: (measured && measured.target) || ABSENT,
         peers: String(node.peers),
         paths: String(node.paths),
-        exit: (desired[node.id] && desired[node.id].ExitNode) || ABSENT,
+        exit: exitOf(desired[node.id], actual[node.id]),
         host: hostAccessWord(desired[node.id]),
         policy,
       };

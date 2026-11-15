@@ -67,6 +67,13 @@ export const VIEWS = [
     pending: "This view lists every tailnet with its state, its peer count, and its address, and it opens a panel on a selection. The view arrives with issue #144.",
   },
   {
+    id: "peers",
+    heading: "Peers",
+    lead: "Every peer of every tailnet, with every field that tailscaled reports. Click a name or an address to copy it.",
+    empty: "No tailnet is configured. Add one, and this view lists every peer with its addresses, its owner, its connection and its routes.",
+    pending: "This view lists every peer of every tailnet.",
+  },
+  {
     id: "access",
     heading: "Access",
     lead: "The local rules that this host enforces between the tailnets, the host, and the internet.",
@@ -598,7 +605,60 @@ function route() {
   drawCurrent();
 }
 
+/** THEME_KEY names the stored theme choice: "auto", "light" or "dark". */
+export const THEME_KEY = "hydrascale.theme";
+
+/** THEMES are the choices of the theme switch, in the order that a click cycles them. */
+export const THEMES = ["auto", "light", "dark"];
+
+/** nextTheme returns the choice that follows theme in THEMES. */
+export function nextTheme(theme) {
+  const at = THEMES.indexOf(theme);
+  return THEMES[(at + 1) % THEMES.length];
+}
+
+/** readTheme returns the stored theme choice, or "auto". */
+function readTheme() {
+  try {
+    const value = window.localStorage.getItem(THEME_KEY);
+    return THEMES.includes(value) ? value : "auto";
+  } catch {
+    return "auto";
+  }
+}
+
+/**
+ * applyTheme sets the theme on the root element. "auto" follows the system through
+ * prefers-color-scheme; "light" and "dark" force one palette. brand/tokens/colors.css
+ * reads the attribute.
+ */
+export function applyTheme(theme) {
+  if (theme === "auto") {
+    document.documentElement.removeAttribute("data-theme");
+  } else {
+    document.documentElement.dataset.theme = theme;
+  }
+  const button = document.getElementById("theme-toggle");
+  if (button) {
+    button.textContent = `theme: ${theme}`;
+  }
+}
+
 function start() {
+  applyTheme(readTheme());
+  const themeButton = document.getElementById("theme-toggle");
+  if (themeButton) {
+    themeButton.addEventListener("click", () => {
+      const theme = nextTheme(readTheme());
+      try {
+        window.localStorage.setItem(THEME_KEY, theme);
+      } catch {
+        // A browser that stores nothing still switches for this page.
+      }
+      applyTheme(theme);
+    });
+  }
+
   poller = createPollLayer({ interval: readSavedInterval() });
 
   document.getElementById("poll-retry").addEventListener("click", () => {

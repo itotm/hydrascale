@@ -33,6 +33,15 @@ type TailscaleStatus struct {
 	MagicDNSSuffix string                `json:"MagicDNSSuffix"`
 	BackendState   string                `json:"BackendState"`
 	AuthURL        string                `json:"AuthURL"`
+	// Version is the version of the tailscaled of the namespace.
+	Version string `json:"Version"`
+	// Health holds the warnings that tailscaled reports, such as a DNS server it cannot
+	// reach.
+	Health []string `json:"Health"`
+	// CurrentTailnet names the tailnet, as the control server reports it.
+	CurrentTailnet *StatusTailnet `json:"CurrentTailnet"`
+	// User maps a user ID, as a decimal string, to the profile of that user.
+	User map[string]StatusUser `json:"User"`
 
 	// SplitDNSRoutes holds the split DNS domains of the tailnet. The field is not part of
 	// `tailscale status --json`; the reconciler fills it from GetSplitDNSRoutes, so that
@@ -49,11 +58,42 @@ type StatusNode struct {
 	AllowedIPs   []string  `json:"AllowedIPs"`
 	Online       bool      `json:"Online"`
 	LastSeen     time.Time `json:"LastSeen"`
+
+	// The fields below are the rest of the peer record of `tailscale status --json` that
+	// the console shows. The names follow ipnstate.PeerStatus.
+	UserID         int64      `json:"UserID"`
+	Tags           []string   `json:"Tags"`
+	PrimaryRoutes  []string   `json:"PrimaryRoutes"`
+	CurAddr        string     `json:"CurAddr"`
+	Relay          string     `json:"Relay"`
+	PeerRelay      string     `json:"PeerRelay"`
+	RxBytes        int64      `json:"RxBytes"`
+	TxBytes        int64      `json:"TxBytes"`
+	Created        time.Time  `json:"Created"`
+	LastHandshake  time.Time  `json:"LastHandshake"`
+	Active         bool       `json:"Active"`
+	ExitNode       bool       `json:"ExitNode"`
+	ExitNodeOption bool       `json:"ExitNodeOption"`
+	KeyExpiry      *time.Time `json:"KeyExpiry"`
+	Expired        bool       `json:"Expired"`
 	// CapMap holds the capability records of the node. A Tailscale service reaches the
 	// daemon here rather than through the peer list. The records of one map hold several
 	// shapes, so the daemon keeps them as raw JSON and reads only the keys that name a
 	// service. See StatusNode.Services.
 	CapMap map[string][]json.RawMessage `json:"CapMap,omitempty"`
+}
+
+// StatusTailnet is the CurrentTailnet record of `tailscale status --json`.
+type StatusTailnet struct {
+	Name            string `json:"Name"`
+	MagicDNSSuffix  string `json:"MagicDNSSuffix"`
+	MagicDNSEnabled bool   `json:"MagicDNSEnabled"`
+}
+
+// StatusUser is one entry of the User map of `tailscale status --json`.
+type StatusUser struct {
+	LoginName   string `json:"LoginName"`
+	DisplayName string `json:"DisplayName"`
 }
 
 // ServiceCapKeyPrefix is the prefix of the capability key that names a service. The control

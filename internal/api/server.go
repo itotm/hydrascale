@@ -62,6 +62,10 @@ type Server struct {
 	// and consoleAddress is then the empty string.
 	consoleServer  *http.Server
 	consoleAddress string
+
+	// consolePasswordHash holds the SHA-256 of the console password, or nil when the
+	// console asks for none. See SetConsolePassword.
+	consolePasswordHash []byte
 }
 
 // SetSocketGroup configures a unix group that may reach the control socket.
@@ -218,9 +222,10 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		LastErrors:    s.reconciler.LastErrors(),
 		ServerVersion: s.version,
 
-		ConfigPath:     s.reconciler.ConfigPath(),
-		SocketPath:     s.socketPath,
-		ConsoleAddress: s.consoleAddress,
+		ConfigPath:      s.reconciler.ConfigPath(),
+		SocketPath:      s.socketPath,
+		ConsoleAddress:  s.consoleAddress,
+		ConsolePassword: s.consolePasswordHash != nil,
 	}
 
 	// The access field carries the mode and the count of rules, which the terminal
@@ -735,6 +740,12 @@ func (s *Server) handleTailnetDetail(w http.ResponseWriter, r *http.Request) {
 	resp.MagicDNSSuffix = status.MagicDNSSuffix
 	resp.BackendState = status.BackendState
 	resp.LoginURL = status.AuthURL
+	resp.Version = status.Version
+	resp.Health = status.Health
+	resp.SelfUser = statusUserName(status, status.Self)
+	if status.CurrentTailnet != nil {
+		resp.TailnetName = status.CurrentTailnet.Name
+	}
 	resp.PeerCount = len(status.Peer)
 	resp.Peers = make([]PeerInfo, 0, len(status.Peer))
 	for _, peer := range status.Peer {
@@ -742,13 +753,28 @@ func (s *Server) handleTailnetDetail(w http.ResponseWriter, r *http.Request) {
 			resp.OnlinePeers++
 		}
 		resp.Peers = append(resp.Peers, PeerInfo{
-			HostName:     peer.HostName,
-			DNSName:      strings.TrimSuffix(peer.DNSName, "."),
-			OS:           peer.OS,
-			TailscaleIPs: peer.TailscaleIPs,
-			AllowedIPs:   peer.AllowedIPs,
-			Online:       peer.Online,
-			LastSeen:     peer.LastSeen,
+			HostName:       peer.HostName,
+			DNSName:        strings.TrimSuffix(peer.DNSName, "."),
+			OS:             peer.OS,
+			TailscaleIPs:   peer.TailscaleIPs,
+			AllowedIPs:     peer.AllowedIPs,
+			Online:         peer.Online,
+			LastSeen:       timeOrNil(peer.LastSeen),
+			User:           statusUserName(status, peer),
+			Tags:           peer.Tags,
+			PrimaryRoutes:  peer.PrimaryRoutes,
+			ExitNodeOption: peer.ExitNodeOption,
+			ExitNode:       peer.ExitNode,
+			Active:         peer.Active,
+			CurAddr:        peer.CurAddr,
+			Relay:          peer.Relay,
+			PeerRelay:      peer.PeerRelay,
+			RxBytes:        peer.RxBytes,
+			TxBytes:        peer.TxBytes,
+			Created:        timeOrNil(peer.Created),
+			LastHandshake:  timeOrNil(peer.LastHandshake),
+			KeyExpiry:      peer.KeyExpiry,
+			Expired:        peer.Expired,
 		})
 	}
 	// Deterministic order: tailscale's Peer map is keyed by node key.
@@ -818,4 +844,25 @@ func (s *Server) handleTailnetRemovalPlan(w http.ResponseWriter, r *http.Request
 		RuleCount: plan.RuleCount,
 		Commands:  plan.Commands,
 	})
+}
+
+// timeOrNil returns nil for the zero time, which tailscaled writes for a value it does not
+// hold, and a pointer to t otherwise.
+func timeOrNil(t time.Time) *time.Time {
+	if t.IsZero() || t.Year() <= 1 {
+		return nil
+	}
+	return &t
+}
+
+// statusUserName returns the login name of the owner of node, or "tagged-devices" for a
+// node that carries tags, as `tailscale status` prints it.
+func statusUserName(status *daemon.TailscaleStatus, node daemon.StatusNode) string {
+	if len(node.Tags) > 0 {
+		return "tagged-devices"
+	}
+	if u, ok := status.User[strconv.FormatInt(node.UserID, 10)]; ok {
+		return u.LoginName
+	}
+	return ""
 }

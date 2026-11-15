@@ -16,7 +16,9 @@ package session
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -53,8 +55,11 @@ func NewReaderWith(runner execx.Runner) *Reader { return &Reader{runner: runner}
 // session whose device is the veth device of a tailnet carries the path from that tailnet
 // to the host.
 //
-// Paths returns an error when a command fails and when the kernel answers with a route
-// that it cannot read. It returns no path together with that error.
+// Paths returns an error when `ss` fails and when the kernel answers with a route that
+// it cannot read. It returns no path together with that error. A remote address that the
+// kernel cannot route (`ip route get` fails, for example "Network is unreachable" for an
+// IPv6 address on a host with no IPv6 route) reaches no veth device, so it carries no
+// path, and Paths skips it rather than failing the whole answer.
 func (r *Reader) Paths(ctx context.Context, devices map[string]string) ([]Path, error) {
 	rows, err := r.sessions(ctx)
 	if err != nil {
@@ -86,6 +91,9 @@ func (r *Reader) Paths(ctx context.Context, devices map[string]string) ([]Path, 
 		seen[row.remoteHost] = true
 
 		device, err := r.device(ctx, row.remoteHost)
+		if errors.Is(err, errNoRoute) {
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -97,6 +105,23 @@ func (r *Reader) Paths(ctx context.Context, devices map[string]string) ([]Path, 
 	}
 
 	return withoutRepeat(paths), nil
+}
+
+// errNoRoute marks a remote address that the kernel cannot route.
+var errNoRoute = errors.New("the kernel holds no route to the address")
+
+// unmapIPv4 returns the IPv4 form of an IPv4-mapped IPv6 address such as
+// ::ffff:192.168.0.250, which a socket that listens on both families reports for an IPv4
+// client. It returns any other value unchanged.
+func unmapIPv4(host string) string {
+	ip := net.ParseIP(host)
+	if ip == nil || !strings.Contains(host, ":") {
+		return host
+	}
+	if v4 := ip.To4(); v4 != nil {
+		return v4.String()
+	}
+	return host
 }
 
 // row is one line of `ss -H -tna`.
@@ -133,6 +158,7 @@ func (r *Reader) sessions(ctx context.Context) ([]row, error) {
 		if !ok {
 			continue
 		}
+		remoteHost = unmapIPv4(remoteHost)
 		rows = append(rows, row{state: fields[0], localPort: localPort, remoteHost: remoteHost})
 	}
 	return rows, nil
@@ -174,6 +200,10 @@ func (r *Reader) device(ctx context.Context, address string) (string, error) {
 	defer cancel()
 
 	out, err := r.runner.Run(ctx, "ip", "-json", "route", "get", address)
+	if err != nil && ctx.Err() == nil {
+		// ip ran and refused the address: the kernel holds no route to it.
+		return "", fmt.Errorf("%w: %s: %s", errNoRoute, address, strings.TrimSpace(string(out)))
+	}
 	if err != nil {
 		return "", fmt.Errorf("failed to read the route to %s: %w: %s", address, err, strings.TrimSpace(string(out)))
 	}
