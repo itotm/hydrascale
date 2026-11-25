@@ -221,7 +221,7 @@ test("the panel states the peers, the magicdns name, the control server and the 
 
   assert.equal(value("namespace"), "ns-alpha");
   assert.equal(value("address"), "100.83.14.7");
-  assert.equal(value("magicdns"), "phobos.alpha.ts.net");
+  assert.equal(value("MagicDNS"), "phobos.alpha.ts.net");
   assert.equal(value("control server"), "hs.example.net");
   assert.equal(value("host access"), "on");
   assert.equal(panel.peers.length, 1);
@@ -241,7 +241,7 @@ test("the panel lists two published ports in the published field, separated by o
 
   // FR-publish-16: drawPanel draws every field value in the mono typeface.
   const source = await readFile(new URL("../static/namespaces.js", import.meta.url), "utf8");
-  assert.match(source, /el\("dd", "mono", field\.value\)/);
+  assert.match(source, /el\("dd", "mono"\), field\.value\)/);
 
   // FR-publish-17: the panel offers no control that changes the list.
   assert.deepEqual(Object.keys(panel.actions).sort(), ["connect", "disconnect", "remove"]);
@@ -303,20 +303,18 @@ test("app.css breaks the credential reason inside the panel", async () => {
 });
 
 test("app.css keeps the address of a row inside its cell", async () => {
-  // Issue #354. The address holds no space that breaks it below its own width. The row is
-  // a table row with a fixed cell for the address, so the address ends in an ellipsis
-  // when the cell is too narrow and it never draws over the panel.
+  // Issue #354. The address holds no space that breaks it below its own width. The fork
+  // cuts no text, so the address wraps when the cell is too narrow, and it never draws over
+  // the panel.
   const style = await readFile(new URL("../static/app.css", import.meta.url), "utf8");
   const address = style.match(/^\.ns-addr\{([^}]*)\}/m);
   assert.ok(address, "app.css holds no rule .ns-addr");
   assert.match(address[1], /min-width:\s*0/);
-  assert.match(address[1], /max-width:/);
-  assert.match(address[1], /overflow:\s*hidden/);
-  assert.match(address[1], /text-overflow:\s*ellipsis/);
-  assert.match(address[1], /white-space:\s*nowrap/);
+  assert.match(address[1], /overflow-wrap:\s*anywhere/);
+  assert.doesNotMatch(address[1], /text-overflow|white-space:\s*nowrap/);
 
   const source = await readFile(new URL("../static/namespaces.js", import.meta.url), "utf8");
-  assert.match(source, /el\("span", "ns-addr mono", row\.address\)/);
+  assert.match(source, /el\("span", "ns-addr mono"\), row\.address\)/);
 });
 
 test("the panel keeps the em dash of the control server row when no policy entry names the tailnet", () => {

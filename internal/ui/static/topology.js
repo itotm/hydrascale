@@ -27,6 +27,20 @@ export const LEFT_X = 12;
 export const RIGHT_X = 448;
 export const TOP = 34;
 
+/** The advance of one character of a node identifier and of a node line, in pixels. */
+const ID_ADVANCE = 7.9;
+const LINE_ADVANCE = 7.3;
+
+/** nodeWidth returns the width that holds the whole identifier and the whole line. */
+function nodeWidth(id, line) {
+  return Math.max(NODE_W, Math.ceil(id.length * ID_ADVANCE) + 36, Math.ceil(line.length * LINE_ADVANCE) + 48);
+}
+
+/** tailnetLine states the reachability and the peer count of a tailnet node. */
+function tailnetLine(word, peers) {
+  return `${word} · ${plural(peers, "peer")}`;
+}
+
 /** The distance between the internet node and the host node of the right column. */
 const RIGHT_GAP = 138;
 
@@ -224,6 +238,12 @@ export function buildTopology(status, access) {
 
   const actual = (status && status.actual) || {};
   const nodes = [];
+  // A long identifier makes the left column wider, so no node cuts its text.
+  const leftWidth = tailnets.reduce(
+    (width, node) => Math.max(width, nodeWidth(node.id, tailnetLine(reachabilityOf(actual[node.id]).word, node.peers || 0))),
+    NODE_W,
+  );
+  const extra = leftWidth - NODE_W;
   tailnets.forEach((node, index) => {
     const reach = reachabilityOf(actual[node.id]);
     nodes.push({
@@ -232,7 +252,7 @@ export function buildTopology(status, access) {
       column: "left",
       x: LEFT_X,
       y: leftTop + index * ROW_GAP,
-      w: NODE_W,
+      w: leftWidth,
       h: NODE_H,
       peers: node.peers || 0,
       veth: node.veth || "",
@@ -247,7 +267,7 @@ export function buildTopology(status, access) {
       id: node.id,
       kind: node.kind,
       column: "right",
-      x: RIGHT_X,
+      x: RIGHT_X + extra,
       y: rightTop + index * RIGHT_GAP,
       w: NODE_W,
       h: NODE_H,
@@ -282,7 +302,7 @@ export function buildTopology(status, access) {
     const owned = paths.filter((path) => path.from === node.id || path.to === node.id).length;
     node.paths = owned;
     node.line = node.kind === "tailnet"
-      ? `${node.word} · ${plural(node.peers, "peer")}`
+      ? tailnetLine(node.word, node.peers)
       : plural(owned, "path");
   }
 
@@ -302,7 +322,7 @@ export function buildTopology(status, access) {
   );
 
   return {
-    width: WIDTH,
+    width: WIDTH + extra,
     height: TOP + span + TOP,
     nodes,
     paths,
@@ -371,7 +391,7 @@ export function topologySVGMarkup(model, selected, options = {}) {
   parts.push(
     `<svg class="flow" viewBox="0 0 ${model.width} ${model.height}" role="img"` +
       ` aria-label="The topology of every tailnet, the host, and the internet."` +
-      ` aria-describedby="${TEXT_EQUIVALENT_ID}">`,
+      ` aria-describedby="${TEXT_EQUIVALENT_ID}" width="${model.width}">`,
   );
 
   for (const path of model.paths) {

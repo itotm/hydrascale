@@ -8,44 +8,27 @@
    files. internal/ui/static/brand/tokens/fonts.css states the source and the licence of
    each file. */
 
+/* The quotes are necessary, because the file names hold brackets. */
 @font-face {
-  font-family: 'Barlow Semi Condensed';
-  src: url('../assets/brand/fonts/BarlowSemiCondensed-Regular.woff2') format('woff2');
-  font-weight: 400;
+  font-family: 'Inter';
+  src: url('../assets/brand/fonts/Inter[wght].woff2') format('woff2');
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Barlow Semi Condensed';
-  src: url('../assets/brand/fonts/BarlowSemiCondensed-Medium.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Barlow Semi Condensed';
-  src: url('../assets/brand/fonts/BarlowSemiCondensed-SemiBold.woff2') format('woff2');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* The quotes are necessary, because the file name holds brackets and a comma. */
-@font-face {
-  font-family: 'Martian Mono';
-  src: url('../assets/brand/fonts/MartianMono[wdth,wght].woff2') format('woff2-variations');
+  font-family: 'JetBrains Mono';
+  src: url('../assets/brand/fonts/JetBrainsMono[wght].woff2') format('woff2');
   font-weight: 100 800;
-  font-stretch: 75% 112.5%;
   font-style: normal;
   font-display: swap;
 }
 
 /* The theme reads these two properties when theme.font is false. */
 :root {
-  --md-text-font: 'Barlow Semi Condensed';
-  --md-code-font: 'Martian Mono';
+  --md-text-font: 'Inter';
+  --md-code-font: 'JetBrains Mono';
 }
 
 /* The site has one colour scheme. The values come from

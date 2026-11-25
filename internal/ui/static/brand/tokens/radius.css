@@ -1,10 +1,9 @@
-/* Square. A cell of the board has no corner radius, and no control has one either. The
-   one round shape is the state dot. */
+/* The shape scale. A container is rounder than the control inside it. */
 :root{
-  --r-xs:0px;
-  --r-sm:0px;    /* buttons, chips, inputs */
-  --r:0px;       /* rows, cells */
-  --r-lg:0px;    /* sections */
-  --r-xl:0px;    /* panels, dialogs */
+  --r-xs:6px;    /* matrix squares */
+  --r-sm:8px;    /* buttons, chips, inputs */
+  --r:10px;      /* rows, cells */
+  --r-lg:14px;   /* cards */
+  --r-xl:18px;   /* dialogs */
   --r-pill:999px;
 }

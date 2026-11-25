@@ -69,7 +69,7 @@ export const VIEWS = [
   {
     id: "peers",
     heading: "Peers",
-    lead: "Every peer of every tailnet, with every field that tailscaled reports. Click a name or an address to copy it.",
+    lead: "Every peer of every tailnet, with every field that tailscaled reports. Select a name or an address to copy it.",
     empty: "No tailnet is configured. Add one, and this view lists every peer with its addresses, its owner, its connection and its routes.",
     pending: "This view lists every peer of every tailnet.",
   },
@@ -608,14 +608,8 @@ function route() {
 /** THEME_KEY names the stored theme choice: "auto", "light" or "dark". */
 export const THEME_KEY = "hydrascale.theme";
 
-/** THEMES are the choices of the theme switch, in the order that a click cycles them. */
+/** THEMES are the choices of the theme switch. */
 export const THEMES = ["auto", "light", "dark"];
-
-/** nextTheme returns the choice that follows theme in THEMES. */
-export function nextTheme(theme) {
-  const at = THEMES.indexOf(theme);
-  return THEMES[(at + 1) % THEMES.length];
-}
 
 /** readTheme returns the stored theme choice, or "auto". */
 function readTheme() {
@@ -638,18 +632,16 @@ export function applyTheme(theme) {
   } else {
     document.documentElement.dataset.theme = theme;
   }
-  const button = document.getElementById("theme-toggle");
-  if (button) {
-    button.textContent = `theme: ${theme}`;
+  for (const button of document.querySelectorAll("[data-theme-choice]")) {
+    button.setAttribute("aria-pressed", button.dataset.themeChoice === theme ? "true" : "false");
   }
 }
 
 function start() {
   applyTheme(readTheme());
-  const themeButton = document.getElementById("theme-toggle");
-  if (themeButton) {
-    themeButton.addEventListener("click", () => {
-      const theme = nextTheme(readTheme());
+  for (const button of document.querySelectorAll("[data-theme-choice]")) {
+    button.addEventListener("click", () => {
+      const theme = button.dataset.themeChoice;
       try {
         window.localStorage.setItem(THEME_KEY, theme);
       } catch {

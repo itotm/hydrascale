@@ -1,50 +1,27 @@
-/* The console self-hosts the two brand typefaces, because the console makes no request to
+/* The console self-hosts its two typefaces, because the console makes no request to
    another host. Each src reads a path of this origin, and go:embed puts every file in the
    daemon binary. brand/fonts/OFL.txt holds the licence of both families.
 
-   Barlow Semi Condensed comes from the npm package @fontsource/barlow-semi-condensed
-   version 5.3.0, files files/barlow-semi-condensed-latin-{400,500,600}-normal.woff2. The
-   family comes from github.com/jpt/barlow.
-   Martian Mono comes from the npm package @fontsource-variable/martian-mono version
-   5.3.0, file files/martian-mono-latin-standard-normal.woff2. The family comes from
-   github.com/evilmartians/mono. Both families carry the SIL Open Font License version
-   1.1. Each file holds the Latin subset only.
-
-   The Martian Mono file is a variable font with two axes: weight from 100 to 800, and
-   width from 75% to 112.5%. The console sets every machine value at a narrow width, so
-   that a fixed cell holds a long identifier. Barlow Semi Condensed publishes no variable
-   font, so the console loads the three weights it uses. The console sets no italic, so no
-   italic file ships. */
+   Inter comes from the npm package @fontsource-variable/inter version 5.3.0, file
+   files/inter-latin-wght-normal.woff2. The family comes from github.com/rsms/inter.
+   JetBrains Mono comes from the npm package @fontsource-variable/jetbrains-mono version
+   5.3.0, file files/jetbrains-mono-latin-wght-normal.woff2. The family comes from
+   github.com/JetBrains/JetBrainsMono. Both families carry the SIL Open Font License
+   version 1.1. Each file holds the Latin subset only, and each one is a variable font
+   with a weight axis. The console sets no italic, so no italic file ships. */
 
 @font-face{
-  font-family:'Barlow Semi Condensed';
-  src:url('/brand/fonts/BarlowSemiCondensed-Regular.woff2') format('woff2');
-  font-weight:400;
+  font-family:'Inter';
+  src:url('/brand/fonts/Inter[wght].woff2') format('woff2');
+  font-weight:100 900;
   font-style:normal;
   font-display:swap;
 }
 
 @font-face{
-  font-family:'Barlow Semi Condensed';
-  src:url('/brand/fonts/BarlowSemiCondensed-Medium.woff2') format('woff2');
-  font-weight:500;
-  font-style:normal;
-  font-display:swap;
-}
-
-@font-face{
-  font-family:'Barlow Semi Condensed';
-  src:url('/brand/fonts/BarlowSemiCondensed-SemiBold.woff2') format('woff2');
-  font-weight:600;
-  font-style:normal;
-  font-display:swap;
-}
-
-@font-face{
-  font-family:'Martian Mono';
-  src:url('/brand/fonts/MartianMono[wdth,wght].woff2') format('woff2-variations');
+  font-family:'JetBrains Mono';
+  src:url('/brand/fonts/JetBrainsMono[wght].woff2') format('woff2');
   font-weight:100 800;
-  font-stretch:75% 112.5%;
   font-style:normal;
   font-display:swap;
 }

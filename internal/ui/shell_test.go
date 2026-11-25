@@ -49,10 +49,10 @@ func TestTheNavigationShowsTheLogoAndTheDaemonVersion(t *testing.T) {
 	// FR-console-13. The version is a machine value, so it renders in the mono typeface.
 	index := readStatic(t, "index.html")
 
-	if !strings.Contains(index, `src="/brand/logo-lime.svg"`) {
+	if !strings.Contains(index, `src="/brand/mark.svg"`) {
 		t.Error("the navigation names no logo file under /brand/")
 	}
-	if _, err := fs.Stat(Files(), "brand/logo-lime.svg"); err != nil {
+	if _, err := fs.Stat(Files(), "brand/mark.svg"); err != nil {
 		t.Errorf("the console names a logo that the binary does not hold: %v", err)
 	}
 
@@ -224,7 +224,7 @@ func TestTheConsoleDeclaresAFaceForEveryFontFile(t *testing.T) {
 	}
 	// typography.css names these two families, and a face that names a third family
 	// reaches no element.
-	for _, family := range []string{"'Barlow Semi Condensed'", "'Martian Mono'"} {
+	for _, family := range []string{"'Inter'", "'JetBrains Mono'"} {
 		if !strings.Contains(faces, "font-family:"+family) {
 			t.Errorf("fonts.css declares no face for the family %s", family)
 		}
@@ -554,7 +554,7 @@ func TestTheConsoleJavaScriptTestsPass(t *testing.T) {
 // minimumConsoleJavaScriptTests is the floor that internal/ui/jstest must reach. The
 // value is a floor rather than an exact count, because a new console test must not fail
 // the build. Raise it when a batch of tests lands. See issue 231.
-const minimumConsoleJavaScriptTests = 424
+const minimumConsoleJavaScriptTests = 452
 
 // nodeTestPassLine matches the summary line "ℹ pass 218" that node --test writes last.
 var nodeTestPassLine = regexp.MustCompile(`(?m)^(?:ℹ|#)\s+pass\s+(\d+)\s*$`)

@@ -13,6 +13,7 @@
 // add action takes the accent instead.
 
 import { VIEWS, registerView } from "./app.js";
+import { appendBreakable } from "./text.js";
 import { COLUMNS, buildBoard, cellMap, cellText, changedCells, notableEvents, verdictOf } from "./board.js";
 import {
   TEXT_EQUIVALENT_ID,
@@ -108,8 +109,7 @@ function choose(id, redraw) {
 function value(text, turn) {
   const node = element("span", "val");
   if (!turn) {
-    node.textContent = text;
-    return node;
+    return appendBreakable(node, text);
   }
   node.classList.add("turn");
   node.setAttribute("aria-label", text);
@@ -128,19 +128,32 @@ function value(text, turn) {
     node.lastChild.addEventListener("animationend", () => {
       node.classList.remove("turn");
       node.removeAttribute("aria-label");
-      node.textContent = text;
+      node.replaceChildren();
+      appendBreakable(node, text);
     });
   }
   return node;
 }
 
-/** drawVerdict draws the one line that answers the glance. */
+/** tile draws one value of the verdict with its name. A state carries its dot. */
+function tile(value, name, tone) {
+  const node = element("span", "count");
+  const text = element("b", typeof value === "number" ? "count-value" : "count-value count-word");
+  if (tone) {
+    text.append(element("span", `dot ${tone}`));
+  }
+  text.append(document.createTextNode(String(value)));
+  node.append(text, document.createTextNode(" "), element("span", "count-name", name));
+  return node;
+}
+
+/** drawVerdict draws the sentence that answers the glance, and the counts under it. */
 function drawVerdict(section, rows, model, status) {
   const verdict = verdictOf(rows);
   const line = element("div", "verdict");
   line.setAttribute("role", "status");
 
-  const statement = element("p", "verdict-text");
+  const statement = element("p", `verdict-text ${verdict.tone}`);
   statement.append(element("span", `dot ${verdict.tone}`));
   statement.append(element("span", undefined, verdict.sentence));
   for (const id of verdict.faults) {
@@ -148,25 +161,19 @@ function drawVerdict(section, rows, model, status) {
   }
   line.append(statement);
 
-  // Each count is one item, so a narrow line wraps between two counts and never inside
-  // one. The access mode and the time of the last tick show on a narrow screen only,
-  // where the title block of the rail is hidden; the tick tells a fresh page from a
-  // stale one.
+  // Each count is one tile: the value and, over it, the word that names the value. The
+  // tick tells a fresh page from a stale one.
   const reconciler = reconcilerState(status);
-  const counts = element("p", "verdict-counts mono");
-  const items = [
-    plural(model.counts.tailnets, "tailnet"),
-    plural(model.counts.peers, "peer"),
-    plural(model.counts.paths, "allowed path"),
-    reconciler.word,
-  ];
-  for (const item of items) {
-    counts.append(element("span", "count", item));
-  }
-  const access = status.access && status.access.mode ? `access ${status.access.mode}` : "no access mode yet";
-  counts.append(element("span", "count count-mode", access));
+  const counts = element("p", "verdict-counts");
+  const noun = (n, word) => (n === 1 ? word : `${word}s`);
+  counts.append(tile(model.counts.tailnets, noun(model.counts.tailnets, "tailnet")));
+  counts.append(tile(model.counts.peers, noun(model.counts.peers, "peer")));
+  counts.append(tile(model.counts.paths, noun(model.counts.paths, "allowed path")));
+  counts.append(tile(reconciler.word, "reconciler", reconciler.tone));
+  const access = status.access && status.access.mode;
+  counts.append(tile(access || "no mode yet", "access"));
   const tick = lastReconcileAt(status.events);
-  counts.append(element("span", "count count-tick", tick === null ? "no tick yet" : `tick ${clockTime(tick)}`));
+  counts.append(tile(tick === null ? "no tick yet" : clockTime(tick), "last tick"));
   line.append(counts);
   section.append(line);
 }
@@ -215,12 +222,18 @@ function drawBoard(section, rows, redraw) {
       const state = row[column.key];
       if (typeof state === "object") {
         cell.classList.add("state");
-        cell.append(element("span", `dot ${state.tone}`));
       }
       if (text === "none") {
         cell.classList.add("absent");
       }
-      cell.append(value(text, turn));
+      const drawn = value(text, turn);
+      if (typeof state === "object") {
+        const badge = element("span", `badge ${state.tone}`.trim());
+        badge.append(element("span", `dot ${state.tone}`.trim()), drawn);
+        cell.append(badge);
+      } else {
+        cell.append(drawn);
+      }
       line.append(cell);
     }
 
@@ -361,7 +374,7 @@ function drawEvents(parent, events) {
     const message = event.TailnetID
       ? `${event.TailnetID}: ${event.Message}`
       : event.Message;
-    row.append(element("p", undefined, message));
+    row.append(appendBreakable(element("p"), message));
     list.append(row);
   }
   frame.append(list);

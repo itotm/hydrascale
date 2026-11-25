@@ -61,10 +61,8 @@ func TestTheEmbeddedConsoleHoldsEveryStaticFile(t *testing.T) {
 // copyright notice and the licence, so OFL.txt ships beside the font files.
 func TestTheConsoleServesEveryFontFileAndTheLicence(t *testing.T) {
 	fonts := []string{
-		"BarlowSemiCondensed-Regular.woff2",
-		"BarlowSemiCondensed-Medium.woff2",
-		"BarlowSemiCondensed-SemiBold.woff2",
-		"MartianMono[wdth,wght].woff2",
+		"Inter[wght].woff2",
+		"JetBrainsMono[wght].woff2",
 	}
 	for _, font := range fonts {
 		rec := httptest.NewRecorder()
@@ -89,8 +87,8 @@ func TestTheConsoleServesEveryFontFileAndTheLicence(t *testing.T) {
 	licence := rec.Body.String()
 	for _, line := range []string{
 		"SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007",
-		"Copyright 2017 The Barlow Project Authors",
-		"Copyright 2021 The Martian Mono Project Authors",
+		"Copyright 2016 The Inter Project Authors",
+		"Copyright 2020 The JetBrains Mono Project Authors",
 	} {
 		if !strings.Contains(licence, line) {
 			t.Errorf("OFL.txt holds no line %q", line)

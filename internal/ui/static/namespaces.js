@@ -9,6 +9,7 @@
 // of a tailnet once per poll interval.
 
 import { registerView, requestJSON } from "./app.js";
+import { appendBreakable } from "./text.js";
 import { backendStateOf } from "./board.js";
 
 /** The rule that config.IsValidID applies. internal/ui/namespaces_test.go compares it. */
@@ -225,7 +226,7 @@ export function buildPanel(status, details, events, id) {
     fields: [
       { label: "namespace", value: (actual && actual.NsName) || `ns-${id}` },
       { label: "address", value: addressOf(detail) },
-      { label: "magicdns", value: (detail && detail.magic_dns_name) || ABSENT },
+      { label: "MagicDNS", value: (detail && detail.magic_dns_name) || ABSENT },
       { label: "control server", value: desired.ControlURL || ABSENT },
       { label: "host access", value: hostAccessWord(desired) },
       { label: "published", value: publishedWord(desired) },
@@ -406,7 +407,7 @@ function el(tag, className, text) {
 
 /** stateSpan draws a state as a coloured dot and a lowercase word. FR-console-41. */
 function stateSpan(state) {
-  const wrap = el("span", "ns-state");
+  const wrap = el("span", state.tone ? `ns-state badge ${state.tone}` : "ns-state badge");
   wrap.append(el("span", state.tone ? `dot ${state.tone}` : "dot"));
   wrap.append(el("span", "ns-word", state.word));
   return wrap;
@@ -497,7 +498,7 @@ function drawRow(row) {
   node.setAttribute("aria-selected", row.selected ? "true" : "false");
   node.tabIndex = row.muted ? -1 : 0;
 
-  const id = el("th", "mono", row.id);
+  const id = appendBreakable(el("th", "mono"), row.id);
   id.scope = "row";
   node.append(id);
 
@@ -516,10 +517,10 @@ function drawRow(row) {
   node.append(el("td", row.peerCount === null ? "num ns-pending" : "num mono", row.peerCount === null ? "no count yet" : String(row.peerCount)));
 
   const address = el("td", "opt");
-  address.append(el("span", "ns-addr mono", row.address));
+  address.append(appendBreakable(el("span", "ns-addr mono"), row.address));
   node.append(address);
   const namespace = el("td", "opt");
-  namespace.append(el("span", "ns-addr mono", row.namespace));
+  namespace.append(appendBreakable(el("span", "ns-addr mono"), row.namespace));
   node.append(namespace);
 
   const open = () => {
@@ -553,7 +554,7 @@ function drawPanel(panel) {
   aside.setAttribute("aria-label", `The tailnet ${panel.id}`);
 
   const head = el("div", "frame-head");
-  head.append(el("h2", "frame-title mono", panel.id));
+  head.append(appendBreakable(el("h2", "frame-title mono"), panel.id));
   const close = el("button", "btn ns-sm", "Close");
   close.type = "button";
   close.addEventListener("click", () => {
@@ -575,7 +576,7 @@ function drawPanel(panel) {
   for (const field of panel.fields) {
     const pair = el("div", "ns-pair");
     pair.append(el("dt", undefined, field.label));
-    pair.append(el("dd", "mono", field.value));
+    pair.append(appendBreakable(el("dd", "mono"), field.value));
     list.append(pair);
   }
   aside.append(list);
@@ -586,7 +587,7 @@ function drawPanel(panel) {
   if (panel.credential && panel.credential.reason) {
     const card = el("div", "ns-notice");
     card.append(el("span", "label", "Credential"));
-    card.append(el("p", "note ns-reason", panel.credential.reason));
+    card.append(appendBreakable(el("p", "note ns-reason"), panel.credential.reason));
     aside.append(card);
   }
   if (panel.loginURL) {
@@ -619,7 +620,7 @@ function drawPanel(panel) {
     const shown = expandedPeers.has(panel.id) ? panel.peers.length : PANEL_PEERS;
     for (const peer of panel.peers.slice(0, shown)) {
       const line = el("div", "ns-peer");
-      line.append(el("span", "mono", peer.name));
+      line.append(appendBreakable(el("span", "mono"), peer.name));
       line.append(el("span", "mono ns-peer-addr", peer.address));
       peers.append(line);
     }

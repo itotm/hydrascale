@@ -20,6 +20,7 @@
 // argument, so internal/ui/jstest asserts it under Node with no browser and no network.
 
 import { ACCESS_ROUTE, refreshConsole, registerView, requestJSON } from "./app.js";
+import { appendBreakable } from "./text.js";
 import { buildTopology, pathListMarkup, textEquivalentMarkup, topologySVGMarkup } from "./topology.js";
 
 /** The identifier of the element that holds the text equivalent of the flow overview.
@@ -841,7 +842,7 @@ function el(tag, className, text) {
 
 /** chip builds one chip. A machine value takes the mono typeface. */
 function chip(text, dotTone) {
-  const node = el("span", "chip");
+  const node = el("span", dotTone ? `chip ${dotTone}` : "chip");
   if (dotTone) {
     node.append(el("span", `dot ${dotTone}`));
   }
@@ -1017,9 +1018,9 @@ function drawStagedList(model) {
   for (const row of model.rows) {
     const line = el("div", "ac-stagedrow");
     line.append(el("span", "ac-stagedverb", row.word));
-    line.append(el("span", "ac-end mono", row.from));
+    line.append(appendBreakable(el("span", "ac-end mono"), row.from));
     line.append(el("span", "ac-conn"));
-    line.append(el("span", "ac-end mono", row.to));
+    line.append(appendBreakable(el("span", "ac-end mono"), row.to));
     line.append(el("span", "ac-noports mono", row.portsLabel));
     list.append(line);
   }
@@ -1241,9 +1242,9 @@ function drawRuleRow(row) {
   const draft = portDraft && portDraft.key === key ? portDraft : null;
 
   const line = el("div", row.staged ? "ac-rule staged" : "ac-rule");
-  line.append(el("span", "ac-end mono", row.from));
+  line.append(appendBreakable(el("span", "ac-end mono"), row.from));
   line.append(el("span", "ac-conn"));
-  line.append(el("span", "ac-end mono", row.to));
+  line.append(appendBreakable(el("span", "ac-end mono"), row.to));
 
   if (row.allPorts) {
     line.append(el("span", "ac-noports mono", row.portsLabel));

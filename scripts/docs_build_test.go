@@ -161,7 +161,7 @@ func TestTheDocsBuildSucceeds(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(dir, "build", "site", "index.html")); err != nil {
 		t.Errorf("the build writes no build/site/index.html: %v", err)
 	}
-	for _, f := range []string{"logo-lime.svg", "fonts/BarlowSemiCondensed-Regular.woff2"} {
+	for _, f := range []string{"logo-lime.svg", "fonts/Inter[wght].woff2"} {
 		path := filepath.Join(dir, "build", "site", "assets", "brand", filepath.FromSlash(f))
 		if _, err := os.Stat(path); err != nil {
 			t.Errorf("the build holds no brand file %s: %v", f, err)

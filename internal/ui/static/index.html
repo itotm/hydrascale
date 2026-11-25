@@ -18,39 +18,47 @@
      brand sets with color-mix, for a browser that reads no color-mix function. -->
 <link rel="stylesheet" href="/tokens.css">
 <link rel="stylesheet" href="/app.css">
-<link rel="icon" href="/brand/logo-lime.svg" type="image/svg+xml">
+<link rel="icon" href="/brand/mark.svg" type="image/svg+xml">
 </head>
 <body>
 <a class="skip" href="#view-heading">Skip to the view</a>
 <div class="app">
 
   <nav class="nav" aria-label="Main">
+    <!-- The mark is a filled tile, so it reads on a light surface and on a dark one. -->
     <div class="brand">
-      <img class="logo" src="/brand/logo-lime.svg" alt="" width="22" height="22">
+      <img class="logo" src="/brand/mark.svg" alt="" width="34" height="34">
       <span class="wordmark">hydra<i>scale</i></span>
     </div>
 
     <!-- The number of an entry is the key that opens the view. app.js binds the keys. -->
     <div class="nav-index">
-      <a class="nav-link" href="#/overview" data-view="overview"><span class="key mono" aria-hidden="true">1</span>Overview</a>
-      <a class="nav-link" href="#/namespaces" data-view="namespaces"><span class="key mono" aria-hidden="true">2</span>Namespaces</a>
-      <a class="nav-link" href="#/peers" data-view="peers"><span class="key mono" aria-hidden="true">3</span>Peers</a>
-      <a class="nav-link" href="#/access" data-view="access"><span class="key mono" aria-hidden="true">4</span>Access</a>
-      <a class="nav-link" href="#/policy" data-view="policy"><span class="key mono" aria-hidden="true">5</span>Policy</a>
-      <a class="nav-link" href="#/activity" data-view="activity"><span class="key mono" aria-hidden="true">6</span>Activity</a>
-      <a class="nav-link" href="#/settings" data-view="settings"><span class="key mono" aria-hidden="true">7</span>Settings</a>
+      <a class="nav-link" href="#/overview" data-view="overview"><span class="ico ico-overview" aria-hidden="true"></span><span class="nav-text">Overview</span><kbd class="key" aria-hidden="true">1</kbd></a>
+      <a class="nav-link" href="#/namespaces" data-view="namespaces"><span class="ico ico-namespaces" aria-hidden="true"></span><span class="nav-text">Namespaces</span><kbd class="key" aria-hidden="true">2</kbd></a>
+      <a class="nav-link" href="#/peers" data-view="peers"><span class="ico ico-peers" aria-hidden="true"></span><span class="nav-text">Peers</span><kbd class="key" aria-hidden="true">3</kbd></a>
+      <a class="nav-link" href="#/access" data-view="access"><span class="ico ico-access" aria-hidden="true"></span><span class="nav-text">Access</span><kbd class="key" aria-hidden="true">4</kbd></a>
+      <a class="nav-link" href="#/policy" data-view="policy"><span class="ico ico-policy" aria-hidden="true"></span><span class="nav-text">Policy</span><kbd class="key" aria-hidden="true">5</kbd></a>
+      <a class="nav-link" href="#/activity" data-view="activity"><span class="ico ico-activity" aria-hidden="true"></span><span class="nav-text">Activity</span><kbd class="key" aria-hidden="true">6</kbd></a>
+      <a class="nav-link" href="#/settings" data-view="settings"><span class="ico ico-settings" aria-hidden="true"></span><span class="nav-text">Settings</span><kbd class="key" aria-hidden="true">7</kbd></a>
     </div>
 
-    <!-- The title block names the daemon that serves this page. app.js writes each value
-         from the last poll, and it writes no value that no poll returned. -->
-    <dl class="title-block">
-      <div><dt>Daemon</dt><dd><span class="mono" id="daemon-version">no version yet</span></dd></div>
-      <div><dt>Access</dt><dd><span class="mono" id="title-access">no mode yet</span></dd></div>
-      <div><dt>Last tick</dt><dd><span class="mono" id="title-tick">no tick yet</span></dd></div>
-    </dl>
+    <div class="nav-foot">
+      <!-- The title block names the daemon that serves this page. app.js writes each value
+           from the last poll, and it writes no value that no poll returned. -->
+      <dl class="title-block">
+        <div><dt>Daemon</dt><dd><span class="mono" id="daemon-version">no version yet</span></dd></div>
+        <div><dt>Access</dt><dd><span class="mono" id="title-access">no mode yet</span></dd></div>
+        <div><dt>Last tick</dt><dd><span class="mono" id="title-tick">no tick yet</span></dd></div>
+      </dl>
 
-    <!-- The theme switch cycles auto, light and dark. app.js stores the choice. -->
-    <button class="btn theme-toggle mono" id="theme-toggle" type="button">theme: auto</button>
+      <!-- The theme switch: one button per choice. app.js binds the buttons and it stores
+           the choice. -->
+      <div class="seg theme-switch" id="theme-switch" role="group" aria-label="Theme">
+        <button type="button" data-theme-choice="auto" aria-pressed="true" title="Follow the system"><span class="ico ico-auto" aria-hidden="true"></span><span>Auto</span></button>
+        <button type="button" data-theme-choice="light" aria-pressed="false" title="Light theme"><span class="ico ico-sun" aria-hidden="true"></span><span>Light</span></button>
+        <button type="button" data-theme-choice="dark" aria-pressed="false" title="Dark theme"><span class="ico ico-moon" aria-hidden="true"></span><span>Dark</span></button>
+      </div>
+    </div>
   </nav>
 
   <main class="main" id="main">

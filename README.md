@@ -18,7 +18,9 @@ well, together with the changes below.
 - **Peers view** in the console: every peer of every tailnet with every field that
   `tailscale status` reports (owner, tags, connection direct or relay, exit node, subnet
   routes, traffic, handshake, key expiry); click a name or an address to copy it.
-- **Light theme** that follows the system, a theme switch, larger type and a wider mono.
+- **New console look** in light and dark (rounded cards, state badges, icons, a mark that
+  reads on any background), with a theme switch. No text is truncated: long names,
+  addresses and e-mails wrap.
 - **`console.password_file`**: optional HTTP basic authentication for the console.
 - **`host_ipv6: false`**: no IPv6 routes, rule or AAAA records on a host without IPv6.
 - **Fixes**: `GET /api/access` failed with HTTP 500 on a host without IPv6 when a

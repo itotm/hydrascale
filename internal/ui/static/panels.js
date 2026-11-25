@@ -216,7 +216,7 @@ export function dnsMarkup(model) {
       (entry) =>
         '<div class="nsrow">' +
         `<span class="id mono">${esc(entry.id)}</span>` +
-        `<span class="st"><span class="dot ${entry.tone}"></span>${esc(entry.word)}</span>` +
+        `<span class="st badge ${entry.tone}"><span class="dot ${entry.tone}"></span>${esc(entry.word)}</span>` +
         (entry.error !== "" ? `<span class="err mono">${esc(entry.error)}</span>` : "") +
         "</div>",
     )
@@ -236,7 +236,7 @@ export function dnsMarkup(model) {
   const at = timeParts(model.changedAt);
   const hostFile = [
     valueRow("path", model.hostPath, model.hostPath !== ""),
-    valueRow("sha256", model.checksum, model.checksum !== ""),
+    valueRow("SHA-256", model.checksum, model.checksum !== ""),
     valueRow("last change", `${at.date} ${at.time}`.trim(), model.changedAt !== ""),
   ];
   parts.push(

@@ -300,7 +300,7 @@ export function policyListMarkup(rows) {
     `<div class="pol-row" role="option" data-id="${esc(row.id)}" aria-selected="${row.selected ? "true" : "false"}" tabindex="0">` +
     `<span class="pol-id mono">${esc(row.id)}</span>` +
     `<span class="pol-kind mono">${esc(row.kind)}</span>` +
-    `<span class="pol-state"><span class="dot ${esc(row.tone)}"></span><span class="pol-word">${esc(row.word)}</span></span>` +
+    `<span class="pol-state badge ${esc(row.tone)}"><span class="dot ${esc(row.tone)}"></span><span class="pol-word">${esc(row.word)}</span></span>` +
     `</div>`,
   );
   return (

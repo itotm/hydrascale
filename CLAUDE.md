@@ -5,6 +5,14 @@ for one setup. The rules below are the upstream rules, with these exceptions:
 
 - The console has a light palette next to the dark one (brand/tokens/colors.css), a theme
   switch, and a peers view (internal/ui/static/peers.js).
+- The console has its own look, and these rules replace the visual rules of
+  `docs/DESIGN.md` and `.claude/rules/console-brand.md`: rounded cards on a neutral page,
+  one blue accent, the typefaces Inter and JetBrains Mono, and a state as a soft badge with
+  a dot and a lowercase word. The accent also marks the current navigation entry and the
+  current selection. The mark is `brand/mark.svg`. The rules on wording, requests, secrets,
+  motion, and denied paths still apply.
+- The console cuts no text: no `text-overflow`, no clipped value. A long value wraps at a
+  separator (`internal/ui/static/text.js`).
 - Work happens on `main`; a release is a tag `v<upstream version>-fork.<n>`, which
   .github/workflows/release.yml turns into a GitHub release with goreleaser.
 - To follow upstream: `git fetch upstream --tags`, then rebase or merge the new upstream
@@ -131,7 +139,7 @@ reach a control API response, and never enter the configuration file. They live 
 ### The console
 
 The upstream console is dark only; the fork adds a light palette that follows
-prefers-color-scheme or the theme switch. Use the accent colour for one
+prefers-color-scheme or the theme switch. Upstream rule: use the accent colour for one
 thing per view: the affirmative action, or the current selection, or an allowed path.
 Show a state as a coloured dot and a lowercase word. Render every machine value in the
 mono typeface and every sentence in the sans typeface. Draw no denied path — absence is

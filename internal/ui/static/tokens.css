@@ -1,24 +1,25 @@
 /* tokens.css holds nothing that the brand does not already declare. It restates the
-   three brand values that brand/tokens/colors.css and brand/tokens/elevation.css build
-   with the color-mix function, because a browser that reads no color-mix function drops
-   the value where the console reads it and the element loses its background or its ring.
-   A custom property accepts any token sequence, so a second declaration in the same rule
-   does not act as a fallback. The @supports rule is the one construction that works.
-
-   The values match the brand: 14% lime on transparent, 72% of #060605, and 45% lime. */
+   values that brand/tokens/colors.css and brand/tokens/elevation.css build with the
+   color-mix function, because a browser that reads no color-mix function drops the value
+   where the console reads it and the element loses its background or its ring. A custom
+   property accepts any token sequence, so a second declaration in the same rule does not
+   act as a fallback. The @supports rule is the one construction that works. */
 @supports not (color: color-mix(in srgb, #ffffff 50%, transparent)){
   :root{
-    --lime-soft:rgba(200,255,46,.14);
-    --scrim:rgba(6,6,5,.72);
-    --ring-focus:0 0 0 2px rgba(200,255,46,.45);
+    --brand-soft:rgba(106,165,255,.16);
+    --scrim:rgba(3,6,12,.7);
+    --ring-focus:0 0 0 3px rgba(106,165,255,.45);
   }
-}
-
-/* The light palette restated for a browser that reads no color-mix function. */
-@supports not (color: color-mix(in srgb, #ffffff 50%, transparent)){
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --brand-soft:rgba(29,95,214,.1);
+      --scrim:rgba(11,19,36,.45);
+      --ring-focus:0 0 0 3px rgba(29,95,214,.45);
+    }
+  }
   :root[data-theme="light"]{
-    --lime-soft:rgba(61,107,0,.14);
-    --scrim:rgba(26,25,23,.4);
-    --ring-focus:0 0 0 2px rgba(61,107,0,.45);
+    --brand-soft:rgba(29,95,214,.1);
+    --scrim:rgba(11,19,36,.45);
+    --ring-focus:0 0 0 3px rgba(29,95,214,.45);
   }
 }

@@ -8,11 +8,12 @@
 // DETAIL_TTL_MS, on the cadence of the poll layer. It starts no timer for the data.
 
 import { registerView, requestJSON } from "./app.js";
+import { appendBreakable } from "./text.js";
 
 /** The age at which the view asks the daemon for the detail of a tailnet again. */
 export const DETAIL_TTL_MS = 10000;
 
-/** The time that a copied value shows the word "copied". */
+/** The time that a copied value shows the check mark. */
 const COPIED_MS = 1500;
 
 const ABSENT = "—";
@@ -265,8 +266,8 @@ async function copyText(text) {
 }
 
 /**
- * copyable draws a value as a button that copies it. The button shows the word "copied"
- * for a moment after a click.
+ * copyable draws a value as a button that copies it. The copy icon turns into a check
+ * mark for a moment after a click.
  */
 function copyable(value, className = "") {
   if (!value) {
@@ -275,10 +276,14 @@ function copyable(value, className = "") {
   const button = el("button", `copy mono ${className}`.trim());
   button.type = "button";
   button.title = `Copy ${value}`;
-  button.append(el("span", "copy-value", value));
-  if (copied.value === value && Date.now() - copied.at < COPIED_MS) {
+  button.append(appendBreakable(el("span", "copy-value"), value));
+  const done = copied.value === value && Date.now() - copied.at < COPIED_MS;
+  const icon = el("span", done ? "ico ico-check copy-ico" : "ico ico-copy copy-ico");
+  icon.setAttribute("aria-hidden", "true");
+  button.append(icon);
+  if (done) {
     button.classList.add("copied");
-    button.append(el("span", "copy-flag", "copied"));
+    button.append(el("span", "sr", "copied"));
   }
   button.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -323,34 +328,38 @@ function detailValues() {
 function drawTools() {
   tools = el("div", "peers-tools");
 
+  const box = el("label", "searchbox");
+  const glass = el("span", "ico ico-search");
+  glass.setAttribute("aria-hidden", "true");
   const search = el("input", "field peers-search");
   search.type = "search";
-  search.placeholder = "Filter: name, address, OS, owner, tag, subnet";
+  search.placeholder = "Name, address, OS, owner, tag, subnet";
   search.setAttribute("aria-label", "Filter the peers");
   search.value = filter.text;
   search.addEventListener("input", () => {
     filter.text = search.value;
     renderBody();
   });
-  tools.append(search);
+  box.append(glass, search);
+  tools.append(box);
 
   const tailnets = el("div", "seg peers-tailnets");
   tailnets.setAttribute("role", "group");
   tailnets.setAttribute("aria-label", "Tailnet");
   tools.append(tailnets);
 
-  const online = el("label", "peers-check");
-  const box = el("input");
-  box.type = "checkbox";
-  box.checked = filter.online;
-  box.addEventListener("change", () => {
-    filter.online = box.checked;
+  const online = el("label", "switch");
+  const check = el("input");
+  check.type = "checkbox";
+  check.setAttribute("role", "switch");
+  check.checked = filter.online;
+  check.addEventListener("change", () => {
+    filter.online = check.checked;
     renderBody();
   });
-  online.append(box, document.createTextNode(" online only"));
+  online.append(check, el("span", undefined, "Online only"));
   tools.append(online);
 
-  tools.append(el("span", "peers-hint", "Click a name or an address to copy it. Click a row for every field."));
   return tools;
 }
 
@@ -359,7 +368,7 @@ function drawTailnetChoices(ids) {
   const group = tools.querySelector(".peers-tailnets");
   group.replaceChildren();
   for (const id of ["", ...ids]) {
-    const button = el("button", undefined, id || "all");
+    const button = el("button", undefined, id || "All");
     button.type = "button";
     button.setAttribute("aria-pressed", filter.tailnet === id ? "true" : "false");
     button.addEventListener("click", () => {
@@ -370,20 +379,27 @@ function drawTailnetChoices(ids) {
   }
 }
 
+/** notice draws a warning of the daemon as a dot and its sentence. */
+function notice(text) {
+  const box = el("div", "alert warn");
+  box.append(el("span", "dot warn"), appendBreakable(el("p"), text));
+  return box;
+}
+
 /** drawSelf draws one card per tailnet: this node, its owner, its version and its warnings. */
 function drawSelf(status, values) {
   const wrap = el("div", "peers-self");
   for (const id of Object.keys(status.desired || {}).sort()) {
     const detail = values[id];
     const alias = (status.desired[id] && status.desired[id].Alias) || "";
-    const card = el("div", "peers-self-card");
+    const card = el("section", "peers-self-card");
+    card.setAttribute("aria-label", `This node in the tailnet ${id}`);
     const head = el("div", "peers-self-head");
-    head.append(el("span", "peers-self-id mono", id));
+    head.append(appendBreakable(el("span", "peers-self-id mono"), id));
     if (alias) {
-      head.append(el("span", "peers-self-alias", `alias ${alias}`));
-    }
-    if (detail) {
-      head.append(el("span", "peers-self-count", `${detail.online_peers || 0} of ${detail.peer_count || 0} online`));
+      const tag = el("span", "badge");
+      tag.append("alias ", el("span", "mono", alias));
+      head.append(tag);
     }
     card.append(head);
     if (!detail) {
@@ -391,35 +407,57 @@ function drawSelf(status, values) {
       wrap.append(card);
       continue;
     }
-    const grid = el("dl", "peers-kv");
-    const add = (label, node) => {
-      grid.append(el("dt", undefined, label));
+    const online = detail.online_peers || 0;
+    const total = detail.peer_count || 0;
+    const meter = el("div", "meter");
+    const words = el("div", "meter-words");
+    words.append(el("span", undefined, "Peers online"), el("span", "mono", `${online} of ${total}`));
+    const track = el("div", "meter-track");
+    const fill = el("span", "meter-fill");
+    fill.style.width = total ? `${Math.round((online / total) * 100)}%` : "0";
+    track.append(fill);
+    meter.append(words, track);
+    card.append(meter);
+
+    const grid = el("dl", "stack-kv");
+    const add = (label, node, half) => {
+      const pair = el("div", half ? "half" : undefined);
       const dd = el("dd");
       dd.append(node);
-      grid.append(dd);
+      pair.append(el("dt", undefined, label), dd);
+      grid.append(pair);
+      return dd;
     };
+    const value = (text) => appendBreakable(el("span", "mono"), text || ABSENT);
     if (detail.backend_state && detail.backend_state !== "Running") {
-      const state = el("span", "peers-state-warn mono", detail.backend_state);
-      add("state", state);
+      const badge = el("span", "badge warn");
+      badge.append(el("span", "dot warn"), el("span", "mono", detail.backend_state));
+      const dd = add("State", badge);
       if (detail.login_url) {
-        const link = el("a", "peers-login", "log in");
+        const link = el("a", "peers-login", "Log in");
         link.href = detail.login_url;
         link.target = "_blank";
         link.rel = "noopener noreferrer";
-        state.after(link);
+        dd.append(link);
       }
     }
-    add("tailnet", el("span", "mono", detail.tailnet_name || detail.magic_dns_suffix || ABSENT));
-    add("this node", copyable((detail.magic_dns_name || "").replace(/\.$/, "")));
-    add("address", copyable((detail.tailscale_ips || []).find((ip) => !ip.includes(":")) || ""));
-    add("user", el("span", "mono", detail.self_user || ABSENT));
-    add("tailscale", el("span", "mono", detail.version ? detail.version.split("-")[0] : ABSENT));
+    add("This node", copyable((detail.magic_dns_name || "").replace(/\.$/, "")));
+    // A personal tailnet carries the name of its user, so one row states both.
+    const tailnetName = detail.tailnet_name || detail.magic_dns_suffix;
+    if (tailnetName && tailnetName === detail.self_user) {
+      add("Tailnet and user", value(tailnetName));
+    } else {
+      add("Tailnet", value(tailnetName));
+      add("User", value(detail.self_user));
+    }
+    add("Address", copyable((detail.tailscale_ips || []).find((ip) => !ip.includes(":")) || ""), true);
+    add("Tailscale", value(detail.version ? detail.version.split("-")[0] : ""), true);
     card.append(grid);
     for (const warning of detail.health || []) {
-      card.append(el("p", "peers-warn", warning));
+      card.append(notice(warning));
     }
     if (detail.error) {
-      card.append(el("p", "peers-warn", detail.error));
+      card.append(notice(detail.error));
     }
     wrap.append(card);
   }
@@ -477,7 +515,7 @@ function drawRow(row, tbody) {
   line.append(el("span", row.online ? (row.active ? "dot ok" : "dot ok dim") : "dot"));
   line.append(copyable(row.name, "peers-strong"));
   if (row.expired) {
-    line.append(el("span", "peers-badge crit", "key expired"));
+    line.append(el("span", "badge crit", "key expired"));
   }
   name.append(line);
   if (row.aliasName) {
@@ -487,31 +525,47 @@ function drawRow(row, tbody) {
   }
   tr.append(name);
 
-  tr.append(el("td", "mono", row.tailnet));
-  const ip = el("td");
-  ip.append(copyable(row.ipv4));
-  tr.append(ip);
-  tr.append(el("td", "mono", row.os || ABSENT));
-  const owner = el("td", "peers-owner", row.user || ABSENT);
-  if (row.tags.length) {
-    owner.title = row.tags.join(", ");
-  }
-  tr.append(owner);
-  tr.append(el("td", `mono peers-conn ${row.connection.kind}`, row.connection.text));
+  // A narrow view draws a row as a card, and a cell then states the head of its column.
+  const cell = (label, className) => {
+    const td = el("td", className);
+    td.dataset.label = label;
+    tr.append(td);
+    return td;
+  };
+  cell("Tailnet").append(appendBreakable(el("span", "badge mono"), row.tailnet));
+  cell("IPv4", "peers-fit").append(copyable(row.ipv4));
+  cell("OS", "peers-fit").append(el("span", "mono", row.os || ABSENT));
 
-  const routes = el("td", "peers-routes");
+  const owner = cell("Owner", "peers-owner");
+  owner.append(appendBreakable(el("span"), row.user || ABSENT));
+  for (const tag of row.tags) {
+    owner.append(appendBreakable(el("span", "badge mono"), tag));
+  }
+
+  // The address of a direct path takes a line of its own, so no cell cuts it.
+  const connection = cell("Connection", "peers-conn");
+  const tone = { direct: "ok", relay: "warn" }[row.connection.kind] || "";
+  const badge = el("span", `badge ${tone}`.trim());
+  const [word, ...rest] = row.connection.text.split(" ");
+  const address = row.connection.kind === "direct" ? rest.join(" ") : "";
+  badge.append(el("span", `dot ${tone}`.trim()), el("span", "mono", address ? word : row.connection.text));
+  connection.append(badge);
+  if (address) {
+    connection.append(appendBreakable(el("span", "peers-endpoint mono"), address));
+  }
+
+  const routes = cell("Exit node · subnets", "peers-routes");
   if (row.exitNode) {
-    routes.append(el("span", row.exitNode === "in use" ? "peers-badge accent" : "peers-badge", `exit node ${row.exitNode === "in use" ? "in use" : ""}`.trim()));
+    routes.append(el("span", row.exitNode === "in use" ? "badge ok" : "badge", row.exitNode === "in use" ? "exit node in use" : "exit node"));
   }
   for (const subnet of row.subnets) {
-    routes.append(copyable(subnet, "peers-subnet"));
+    routes.append(copyable(subnet));
   }
   if (!row.exitNode && row.subnets.length === 0) {
     routes.append(el("span", "peers-absent", ABSENT));
   }
-  tr.append(routes);
 
-  tr.append(el("td", "mono peers-seen", row.online ? (row.active ? "active" : "online") : row.lastSeen || ABSENT));
+  cell("Seen", "peers-seen").append(el("span", undefined, row.online ? (row.active ? "active" : "online") : row.lastSeen || ABSENT));
 
   const toggle = () => {
     if (expanded.has(row.key)) {
@@ -539,18 +593,19 @@ function drawDetail(row) {
   const tr = el("tr", "peer-detail");
   const td = el("td");
   td.colSpan = COLUMNS.length;
-  const grid = el("dl", "peers-kv wide");
+  const grid = el("dl", "stack-kv wide");
   const add = (label, node) => {
-    grid.append(el("dt", undefined, label));
+    const pair = el("div");
     const dd = el("dd");
     if (Array.isArray(node)) {
       node.forEach((n) => dd.append(n));
     } else {
       dd.append(node);
     }
-    grid.append(dd);
+    pair.append(el("dt", undefined, label), dd);
+    grid.append(pair);
   };
-  const text = (value) => el("span", "mono", value || ABSENT);
+  const text = (value) => appendBreakable(el("span", "mono"), value || ABSENT);
   const when = (iso) => {
     if (!iso) {
       return text("");
@@ -559,24 +614,24 @@ function drawDetail(row) {
     return span;
   };
   add("MagicDNS name", copyable(row.fqdn));
-  add("short name", copyable(row.aliasName));
-  add("host name", copyable(row.hostName));
+  add("Short name", copyable(row.aliasName));
+  add("Host name", copyable(row.hostName));
   add("IPv4", copyable(row.ipv4));
   add("IPv6", copyable(row.ipv6));
-  add("allowed IPs", row.allowedIPs.length ? row.allowedIPs.map((ip) => copyable(ip)) : text(""));
-  add("subnet routes", row.subnets.length ? row.subnets.map((ip) => copyable(ip)) : text(""));
-  add("exit node", text(row.exitNode || "no"));
-  add("owner", text(row.user));
-  add("tags", text(row.tags.join(", ")));
+  add("Allowed IPs", row.allowedIPs.length ? row.allowedIPs.map((ip) => copyable(ip)) : text(""));
+  add("Subnet routes", row.subnets.length ? row.subnets.map((ip) => copyable(ip)) : text(""));
+  add("Exit node", text(row.exitNode || "no"));
+  add("Owner", text(row.user));
+  add("Tags", text(row.tags.join(", ")));
   add("OS", text(row.os));
-  add("connection", text(row.connection.text));
-  add("traffic", text(`↓ ${formatBytes(row.rx)}  ↑ ${formatBytes(row.tx)}`));
-  add("received", text(`${formatBytes(row.rx)} (${row.rx} B)`));
-  add("sent", text(`${formatBytes(row.tx)} (${row.tx} B)`));
-  add("last handshake", when(row.lastHandshake));
-  add("last seen", row.online ? text("online now") : when(row.lastSeenAt));
-  add("created", when(row.created));
-  add("key expiry", row.keyExpiry ? when(row.keyExpiry) : text("never"));
+  add("Connection", text(row.connection.text));
+  add("Traffic", text(`↓ ${formatBytes(row.rx)}  ↑ ${formatBytes(row.tx)}`));
+  add("Received", text(`${formatBytes(row.rx)} (${row.rx} B)`));
+  add("Sent", text(`${formatBytes(row.tx)} (${row.tx} B)`));
+  add("Last handshake", when(row.lastHandshake));
+  add("Last seen", row.online ? text("online now") : when(row.lastSeenAt));
+  add("Created", when(row.created));
+  add("Key expiry", row.keyExpiry ? when(row.keyExpiry) : text("never"));
   td.append(grid);
   tr.append(td);
   return tr;
@@ -605,7 +660,7 @@ function renderBody() {
   const all = buildPeerRows(status, values);
   const rows = sortRows(filterRows(all, filter), sort);
   const online = all.filter((row) => row.online).length;
-  body.append(el("p", "peers-count", `${rows.length} shown · ${all.length} peers · ${online} online`));
+  body.append(el("p", "peers-count", `${rows.length} shown · ${all.length} peers · ${online} online. Select a row to show every field.`));
 
   const frame = el("div", "peers-frame");
   const table = el("table", "peers-table");

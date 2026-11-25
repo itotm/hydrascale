@@ -1,11 +1,13 @@
-/* The console shell: the frame, the left rail, the title block, and the poll banner.
-   Every value comes from brand/tokens/. This file declares no colour, no spacing step,
-   and no radius of its own.
+/* The console: the frame, the navigation, the poll banner, and every view.
+   Every value comes from brand/tokens/. This file declares no colour of its own.
 
-   The world of the console is a departure board: fixed columns of square cells, set
-   into one frame, where only the values change. The shell takes no accent. The current
-   navigation entry is a reversed number cell, so each view keeps the accent for its own
-   one thing. See FR-console-40. */
+   The world of the fork is a card dashboard: soft cards on a neutral page, rounded
+   controls, and a state as a badge, which is a dot and a lowercase word on a soft fill.
+   The accent marks the affirmative action, the current navigation entry, the current
+   choice of a control, and an allowed path.
+
+   No rule cuts a text. A long machine value wraps at a separator (text.js), and
+   overflow-wrap:anywhere breaks a value that holds none. */
 
 *{box-sizing:border-box}
 
@@ -23,175 +25,205 @@ body{
   font-size:var(--fs-body);
   line-height:var(--lh-body);
   letter-spacing:var(--ls-body);
-  caret-color:var(--text-body);
-  scrollbar-color:var(--border-default) var(--surface-page);
+  caret-color:var(--accent);
+  accent-color:var(--accent);
+  scrollbar-color:var(--border-default) transparent;
   -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
 }
-::selection{background:var(--surface-inset); color:var(--text-body)}
+::selection{background:var(--accent-soft); color:var(--text-body)}
 
-/* The mono typeface carries a machine value. The sans typeface carries a sentence. The
-   mono is narrow, so a fixed cell holds a long identifier. */
+/* The mono typeface carries a machine value. The sans typeface carries a sentence. */
 .mono{
   font-family:var(--font-data);
   font-size:var(--fs-data);
-  font-stretch:var(--stretch-mono);
   letter-spacing:var(--ls-mono);
   font-variant-numeric:tabular-nums;
+  font-variant-ligatures:none;
 }
-/* A column head and a field name: the one uppercase text of the console. */
 .label{
-  font-family:var(--font-body);
-  font-size:var(--fs-label);
-  font-weight:var(--fw-medium);
-  letter-spacing:var(--ls-label);
-  text-transform:uppercase;
-  color:var(--text-tertiary);
+  font-size:var(--fs-sm);
+  font-weight:var(--fw-semibold);
+  color:var(--text-body);
 }
+
+/* An icon takes the colour of its text: the file is the mask and the text colour fills it. */
+.ico{
+  display:inline-block;
+  flex:none;
+  width:20px;
+  height:20px;
+  background:currentColor;
+  -webkit-mask:var(--ico) center / contain no-repeat;
+  mask:var(--ico) center / contain no-repeat;
+}
+.ico-overview{--ico:url(/brand/icons/overview.svg)}
+.ico-namespaces{--ico:url(/brand/icons/namespaces.svg)}
+.ico-peers{--ico:url(/brand/icons/peers.svg)}
+.ico-access{--ico:url(/brand/icons/access.svg)}
+.ico-policy{--ico:url(/brand/icons/policy.svg)}
+.ico-activity{--ico:url(/brand/icons/activity.svg)}
+.ico-settings{--ico:url(/brand/icons/settings.svg)}
+.ico-search{--ico:url(/brand/icons/search.svg)}
+.ico-auto{--ico:url(/brand/icons/auto.svg)}
+.ico-sun{--ico:url(/brand/icons/sun.svg)}
+.ico-moon{--ico:url(/brand/icons/moon.svg)}
+.ico-copy{--ico:url(/brand/icons/copy.svg)}
+.ico-check{--ico:url(/brand/icons/check.svg)}
 
 .skip{
   position:absolute;
   left:var(--sp-2);
   top:calc(var(--sp-2) * -8);
-  z-index:2;
+  z-index:20;
   padding:var(--pad-btn-sm);
   border-radius:var(--r-sm);
-  background:var(--surface-raised);
+  background:var(--surface-card);
   color:var(--text-body);
   text-decoration:none;
 }
 .skip:focus{top:var(--sp-2)}
 
-/* The page frame paints the rail colour down its whole height, so the rail never ends
-   above a long view. The rail itself stays on the screen while the view scrolls. */
-.app{
-  display:grid;
-  grid-template-columns:var(--w-nav) 1fr;
-  min-height:100vh;
-  background:linear-gradient(to right, var(--surface-card) calc(var(--w-nav) - 1px), var(--border-default) calc(var(--w-nav) - 1px), var(--border-default) var(--w-nav), transparent var(--w-nav));
-}
+/* A screen reader reads this region and no eye sees it. The topology puts its text
+   equivalent here, because a dotted curve carries no meaning to a screen reader. */
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap}
 
-/* The left rail */
+/* ---- The navigation -------------------------------------------------------------- */
+
+.app{display:grid; grid-template-columns:var(--w-nav) minmax(0,1fr); min-height:100vh}
 
 .nav{
   position:sticky;
   top:0;
   height:100vh;
+  overflow-y:auto;
   background:var(--surface-card);
   border-right:1px solid var(--border-default);
-  padding:var(--sp-5) var(--sp-3) var(--sp-3);
+  padding:var(--sp-5) var(--sp-4) var(--sp-4);
   display:flex;
   flex-direction:column;
   gap:var(--sp-6);
 }
-.brand{display:flex; align-items:center; gap:var(--sp-2); padding:0 var(--sp-2)}
-.logo{display:block}
-.wordmark{font-size:var(--fs-h3); font-weight:var(--fw-semibold)}
+.brand{display:flex; align-items:center; gap:var(--sp-3); padding:0 var(--sp-2)}
+.logo{display:block; flex:none}
+.wordmark{font-size:20px; font-weight:var(--fw-bold); letter-spacing:var(--ls-h1)}
 .wordmark i{font-style:normal; color:var(--accent)}
 
-.nav-index{display:flex; flex-direction:column; gap:1px}
+.nav-index{display:flex; flex-direction:column; gap:var(--sp-1)}
 .nav-link{
   display:flex;
   align-items:center;
   gap:var(--sp-3);
-  padding:var(--sp-1) var(--sp-2);
+  padding:9px var(--sp-3);
+  border-radius:var(--r);
   color:var(--text-secondary);
-  font-size:var(--fs-body);
   font-weight:var(--fw-medium);
   text-decoration:none;
   transition:background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
 }
 .nav-link:hover{background:var(--surface-raised); color:var(--text-body)}
-.nav-link[aria-current]{background:var(--surface-raised); color:var(--text-body)}
+.nav-link[aria-current]{background:var(--accent-soft); color:var(--accent); font-weight:var(--fw-semibold)}
 
-/* The number is the key that opens the view. The current entry reverses its cell. */
+/* The number is the key that opens the view. */
 .key{
+  margin-left:auto;
   display:grid;
   place-items:center;
-  width:24px;
-  height:24px;
-  flex:none;
+  min-width:22px;
+  height:22px;
   border:1px solid var(--border-default);
+  border-radius:var(--r-xs);
   background:var(--surface-page);
   color:var(--text-tertiary);
-  font-size:var(--fs-micro);
+  font-family:var(--font-data);
+  font-size:12px;
 }
-.nav-link[aria-current] .key{background:var(--text-body); border-color:var(--text-body); color:var(--surface-page)}
+.nav-link[aria-current] .key{border-color:transparent; background:transparent; color:var(--accent)}
+
+.nav-foot{margin-top:auto; display:flex; flex-direction:column; gap:var(--sp-3)}
 
 /* The title block names the daemon that serves this page. */
-.title-block{margin:auto 0 0; border:1px solid var(--border-default)}
-.title-block div{padding:var(--sp-2) var(--sp-3); display:flex; flex-direction:column; gap:2px}
-.title-block div + div{border-top:1px solid var(--border-default)}
-.title-block dt{
-  font-size:var(--fs-label);
-  font-weight:var(--fw-medium);
-  letter-spacing:var(--ls-label);
-  text-transform:uppercase;
-  color:var(--text-tertiary);
-}
-.title-block dd{margin:0; color:var(--text-body)}
+.title-block{margin:0; padding:var(--sp-2) var(--sp-3); border-radius:var(--r); background:var(--surface-raised)}
+.title-block div{padding:var(--sp-1) 0}
+.title-block dt{font-size:var(--fs-label); color:var(--text-tertiary); line-height:1.4}
+.title-block dd{margin:0; color:var(--text-body); line-height:1.4; overflow-wrap:anywhere}
 
-/* The view frame */
+.seg.theme-switch{display:flex; flex-wrap:nowrap}
+.seg.theme-switch button{flex:1; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:6px 2px; font-size:var(--fs-micro); white-space:nowrap}
+.theme-switch .ico{width:16px; height:16px}
 
-.main{padding:var(--sp-6) var(--sp-7) var(--sp-8); min-width:0; max-width:var(--maxw-app)}
-.head{display:flex; align-items:baseline; flex-wrap:wrap; gap:var(--sp-1) var(--sp-4); margin-bottom:var(--sp-5)}
+/* ---- The view frame --------------------------------------------------------------- */
+
+.main{padding:var(--sp-7) var(--sp-7) var(--sp-9); min-width:0; max-width:var(--maxw-app); width:100%}
+.head{margin-bottom:var(--sp-6)}
 h1{
-  font-family:var(--font-display);
   font-size:var(--fs-h1);
-  font-weight:var(--fw-semibold);
+  font-weight:var(--fw-bold);
   letter-spacing:var(--ls-h1);
   line-height:var(--lh-head);
   margin:0;
 }
 h2{
-  font-family:var(--font-display);
   font-size:var(--fs-h2);
   font-weight:var(--fw-semibold);
   letter-spacing:var(--ls-h2);
   line-height:var(--lh-head);
   margin:0 0 var(--sp-2);
 }
-.sub{color:var(--text-secondary); max-width:var(--maxw-read); margin:0}
-/* The overview leads with its verdict. The head stays in the page for a screen reader. */
-.main[data-view="overview"] .head{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; margin:0}
+.sub{color:var(--text-secondary); max-width:960px; margin:var(--sp-1) 0 0}
 .view[hidden]{display:none}
 
-/* A card is a frame: the page colour inside one border. A card that opens with a label
-   or a card head turns that first line into the header strip of the frame, so every
-   region of the console carries the same title, in the same place, at the same size. */
-.card{
-  background:var(--surface-page);
+/* A card and a frame are the same container. The first line of it is a header with the
+   title on the left and a count or a tool on the right. */
+.card,
+.frame{
+  background:var(--surface-card);
   border:1px solid var(--border-default);
   border-radius:var(--r-lg);
-  padding:var(--sp-4);
+  box-shadow:var(--shadow-card);
+  padding:0 var(--sp-5) var(--sp-5);
+  min-width:0;
 }
+.card{padding-top:var(--sp-5)}
 .card + .card{margin-top:var(--sp-5)}
 .card > .label:first-child,
-.card > .card-head:first-child{
+.card > .card-head:first-child,
+.frame-head{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  gap:var(--sp-3);
-  min-height:44px;
-  margin:calc(var(--sp-4) * -1) calc(var(--sp-4) * -1) var(--sp-4);
-  padding:0 var(--sp-4);
-  background:var(--surface-card);
-  border-bottom:1px solid var(--border-default);
+  flex-wrap:wrap;
+  gap:var(--sp-2) var(--sp-3);
+  min-height:58px;
+  margin:0 calc(var(--sp-5) * -1) var(--sp-5);
+  padding:var(--sp-2) var(--sp-5);
+  border-bottom:1px solid var(--border-soft);
 }
 .card > .label:first-child,
-.card > .card-head:first-child > .label:first-child{
-  font-size:var(--fs-body);
-  font-weight:var(--fw-semibold);
-  letter-spacing:0;
-  text-transform:none;
-  color:var(--text-body);
-}
+.card > .card-head:first-child{margin-top:calc(var(--sp-5) * -1)}
+.card > .label:first-child,
+.card > .card-head:first-child > .label:first-child,
+.frame-title{font-size:16px; font-weight:var(--fw-semibold); letter-spacing:var(--ls-h2); color:var(--text-body); min-width:0; overflow-wrap:anywhere}
+.frame-title{margin:0}
+.frame-title.mono{letter-spacing:0}
 .card-head{display:flex; justify-content:space-between; gap:var(--sp-3); margin-bottom:var(--sp-4)}
-.note{color:var(--text-secondary); font-size:var(--fs-sm); margin:var(--sp-2) 0 0; max-width:var(--maxw-read)}
+.frame-tools{display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-right:auto; margin-left:var(--sp-3)}
+.frame-meta{color:var(--text-tertiary)}
+.frame-link{color:var(--accent); font-size:var(--fs-sm); font-weight:var(--fw-medium); text-decoration:none; border-radius:var(--r-xs)}
+.frame-link:hover{text-decoration:underline}
+.frame > .note:first-child,
+.frame.empty > p:first-child{margin-top:var(--sp-5)}
+
+.note{color:var(--text-secondary); font-size:var(--fs-sm); margin:var(--sp-2) 0 0; max-width:var(--maxw-read); overflow-wrap:anywhere}
 .note:first-child{margin-top:0}
+.note .mono{font-size:var(--fs-micro)}
+.note a{color:var(--accent); border-radius:var(--r-xs)}
+.note a:focus-visible{outline:none; box-shadow:var(--ring-focus)}
 
 /* An empty state states what would fill the view. The console shows no invented data. */
-.empty{border-style:dashed}
-.empty p{margin:var(--sp-2) 0 0; color:var(--text-secondary); max-width:var(--maxw-read)}
+.empty{border-style:dashed; box-shadow:none}
+.empty p{color:var(--text-secondary); max-width:var(--maxw-read)}
+.card.empty p{margin:0}
 
 /* A state is a coloured dot and a lowercase word. A dot with no tone is a quiet state,
    such as an optional credential that the operator did not set. */
@@ -199,150 +231,294 @@ h2{
 .dot.ok{background:var(--status-ok)}
 .dot.warn{background:var(--status-warn)}
 .dot.crit{background:var(--status-crit)}
+.dot.dim{opacity:.55}
 
-/* The poll banner. It carries no accent, because each view owns the accent. */
-.bar{
-  display:flex;
+/* The badge is the soft fill around a state, or around one short machine value. */
+.badge{
+  display:inline-flex;
   align-items:center;
-  gap:var(--sp-3);
-  padding:var(--pad-row);
-  margin-bottom:var(--sp-5);
-  border:1px solid var(--border-default);
-  border-radius:var(--r);
-  background:var(--surface-card);
-}
-.bar[hidden]{display:none}
-.bar-text{margin:0; color:var(--text-body); font-size:var(--fs-sm)}
-.bar .btn{margin-left:auto}
-
-/* A button is a square cell. A disabled button loses its fill and its hover, and an
-   affirmative button that is disabled loses the accent, so the accent always marks a
-   thing that the operator can do now. */
-.btn{
-  font:inherit;
+  gap:6px;
+  max-width:100%;
+  padding:2px 10px;
+  border-radius:var(--r-pill);
+  background:var(--quiet-soft);
+  color:var(--text-secondary);
+  font-size:var(--fs-micro);
   font-weight:var(--fw-medium);
-  padding:var(--pad-btn-sm);
+  line-height:1.5;
+  vertical-align:middle;
+  overflow-wrap:anywhere;
+}
+.badge .mono,
+.badge.mono{font-size:12.5px}
+.badge.mono{overflow-wrap:break-word; display:inline; vertical-align:baseline; border-radius:var(--r-sm); padding:3px 8px; -webkit-box-decoration-break:clone; box-decoration-break:clone}
+.badge .dot{width:7px; height:7px}
+.badge.ok{background:var(--ok-soft); color:var(--status-ok)}
+.badge.warn{background:var(--warn-soft); color:var(--status-warn)}
+.badge.crit{background:var(--crit-soft); color:var(--status-crit)}
+
+.chip{
+  display:inline-flex;
+  align-items:center;
+  gap:var(--sp-2);
+  max-width:100%;
+  padding:3px 10px;
   border-radius:var(--r-sm);
   border:1px solid var(--border-default);
   background:var(--surface-raised);
-  color:var(--text-body);
-  cursor:pointer;
-  transition:background var(--dur-1) var(--ease);
+  color:var(--text-secondary);
+  overflow-wrap:anywhere;
 }
-.btn:hover{background:var(--surface-inset)}
-.btn:disabled,
-.btn:disabled:hover{background:transparent; color:var(--text-tertiary); border-color:var(--border-default); cursor:not-allowed; filter:none}
-.btn[hidden]{display:none}
+.chip .mono,
+.chip.mono{font-size:12.5px; min-width:0}
+.chip.ok{border-color:transparent; background:var(--ok-soft); color:var(--status-ok)}
+.chip.warn{border-color:transparent; background:var(--warn-soft); color:var(--status-warn)}
+.chip.crit{border-color:transparent; background:var(--crit-soft); color:var(--status-crit)}
 
-.field{
+/* A banner states one fact that the operator acts on. */
+.alert,
+.unsup,
+.bar,
+.ns-toast{
+  display:flex;
+  gap:var(--sp-3);
+  align-items:flex-start;
+  padding:var(--pad-row);
+  border:1px solid var(--border-default);
+  border-radius:var(--r);
+  background:var(--surface-raised);
+}
+.alert .dot,
+.unsup .dot{margin-top:7px}
+.alert > div{min-width:0}
+.alert p{margin:0; font-size:var(--fs-sm); color:var(--text-body); max-width:var(--maxw-read); overflow-wrap:anywhere}
+.alert p + p{margin-top:var(--sp-2); color:var(--text-secondary)}
+.alert.warn,
+.alert:has(> .dot.warn){border-color:transparent; background:var(--warn-soft)}
+.alert.crit,
+.alert:has(> .dot.crit){border-color:transparent; background:var(--crit-soft)}
+.alert.ok{border-color:transparent; background:var(--ok-soft)}
+.card > .alert{margin-top:var(--sp-3)}
+.card > .alert:first-child{margin-top:0}
+.unsup .note{margin:0}
+
+/* The poll banner. */
+.bar{align-items:center; margin-bottom:var(--sp-5); background:var(--surface-card); box-shadow:var(--shadow-card)}
+.bar[hidden]{display:none}
+.bar-text{margin:0; color:var(--text-body); font-size:var(--fs-sm); min-width:0; overflow-wrap:anywhere}
+.bar .btn{margin-left:auto}
+
+/* ---- The controls ------------------------------------------------------------------ */
+
+/* A disabled button loses its fill and its hover, and an affirmative button that is
+   disabled loses the accent, so the accent always marks a thing that the operator can do
+   now. */
+.btn{
   font:inherit;
-  font-family:var(--font-data);
-  font-size:var(--fs-data);
-  font-stretch:var(--stretch-mono);
-  padding:var(--pad-input);
+  font-size:var(--fs-sm);
+  font-weight:var(--fw-medium);
+  line-height:1.4;
+  padding:var(--pad-btn-sm);
   border-radius:var(--r-sm);
   border:1px solid var(--border-default);
-  background:var(--surface-inset);
+  background:var(--surface-card);
   color:var(--text-body);
+  cursor:pointer;
+  transition:background var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
 }
+.btn:hover{background:var(--surface-raised)}
+.btn:disabled,
+.btn:disabled:hover{background:var(--surface-raised); color:var(--text-tertiary); border-color:transparent; cursor:not-allowed}
+.btn[hidden]{display:none}
+.btn.primary{background:var(--accent); color:var(--accent-ink); border-color:transparent; font-weight:var(--fw-semibold)}
+.btn.primary:hover{background:var(--accent-strong)}
+a.btn{display:inline-block; text-decoration:none}
+.ns-sm,
+.btn.sm{padding:5px 12px}
+.ns-danger{color:var(--status-crit)}
+.ns-danger:hover{background:var(--crit-soft); border-color:transparent}
+
+.field{
+  font-family:var(--font-data);
+  font-variant-ligatures:none;
+  font-size:var(--fs-data);
+  line-height:1.4;
+  min-width:0;
+  max-width:100%;
+  padding:8px 12px;
+  border-radius:var(--r-sm);
+  border:1px solid var(--border-default);
+  background:var(--surface-page);
+  color:var(--text-body);
+  /* A browser with field-sizing grows a field with its text, so a long value shows whole. */
+  field-sizing:content;
+}
+.field:hover{border-color:var(--text-tertiary)}
+.field::placeholder{color:var(--text-tertiary); opacity:1}
+.field[aria-invalid="true"]{border-color:var(--status-crit)}
+.field:read-only:not(select){color:var(--text-secondary)}
 select.field{
   appearance:none;
-  padding-right:var(--sp-7);
+  padding-right:36px;
   /* Two gradients draw the chevron, so the page names no image file and no other host. */
   background-image:linear-gradient(45deg, transparent 50%, var(--text-secondary) 50%), linear-gradient(135deg, var(--text-secondary) 50%, transparent 50%);
   background-repeat:no-repeat;
   background-size:5px 5px, 5px 5px;
-  background-position:calc(100% - 17px) 50%, calc(100% - 12px) 50%;
+  background-position:calc(100% - 18px) 52%, calc(100% - 13px) 52%;
 }
 .row{display:flex; align-items:center; gap:var(--sp-3); flex-wrap:wrap}
 .row + .row{margin-top:var(--sp-4)}
+
+/* A segmented control: a track, and the current choice as a raised card in it. */
+.seg{
+  display:inline-flex;
+  flex-wrap:wrap;
+  gap:2px;
+  padding:3px;
+  border-radius:var(--r);
+  background:var(--surface-inset);
+}
+.seg button{
+  font:inherit;
+  font-size:var(--fs-sm);
+  font-weight:var(--fw-medium);
+  line-height:1.4;
+  padding:5px 12px;
+  border-radius:7px;
+  border:none;
+  background:transparent;
+  color:var(--text-secondary);
+  cursor:pointer;
+  overflow-wrap:anywhere;
+  transition:background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+}
+.seg button:hover{color:var(--text-body)}
+.seg button[aria-selected="true"],
+.seg button[aria-pressed="true"]{background:var(--surface-card); color:var(--text-body); box-shadow:var(--shadow-card)}
+.seg button:disabled{color:var(--text-tertiary); cursor:not-allowed}
+.pol-visual .seg,
+.pol-editor .seg{margin-bottom:var(--sp-3)}
+
+/* A switch is a checkbox drawn as a track and a thumb. */
+.switch{display:inline-flex; align-items:center; gap:var(--sp-3); color:var(--text-secondary); font-size:var(--fs-sm); font-weight:var(--fw-medium); cursor:pointer}
+.switch input{
+  appearance:none;
+  position:relative;
+  flex:none;
+  width:40px;
+  height:22px;
+  margin:0;
+  border-radius:var(--r-pill);
+  background:var(--text-tertiary);
+  cursor:pointer;
+  transition:background var(--dur-2) var(--ease);
+}
+.switch input::after{
+  content:"";
+  position:absolute;
+  top:3px;
+  left:3px;
+  width:16px;
+  height:16px;
+  border-radius:var(--r-pill);
+  background:var(--surface-card);
+  transition:transform var(--dur-2) var(--ease);
+}
+.switch input:checked{background:var(--accent)}
+.switch input:checked::after{transform:translateX(18px)}
+
+.searchbox{position:relative; flex:1 1 380px; min-width:0; display:block}
+.searchbox .ico{position:absolute; left:12px; top:50%; width:18px; height:18px; transform:translateY(-50%); color:var(--text-tertiary); pointer-events:none}
+.searchbox .field{width:100%; field-sizing:fixed; padding:10px 14px 10px 38px; font-family:var(--font-body); font-size:var(--fs-body); background:var(--surface-card)}
 
 /* Every control reaches focus by keyboard and it draws the one ring that the brand
    declares. No other rule removes an outline. */
 .nav-link:focus-visible,
 .btn:focus-visible,
 .field:focus-visible,
+.seg button:focus-visible,
+.switch input:focus-visible,
 .board tbody tr:focus-visible,
 .frame-link:focus-visible,
+.ac-square:focus-visible,
 .skip:focus-visible{outline:none; box-shadow:var(--ring-focus)}
 
-/* The overview */
+/* ---- The overview ------------------------------------------------------------------- */
 
-/* A screen reader reads this region and no eye sees it. The topology puts its text
-   equivalent here, because a dotted curve carries no meaning to a screen reader. */
-.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap}
-
-/* The verdict answers the glance in one line. Its counts are the sums of the board. */
-.verdict{
-  display:flex;
-  align-items:center;
-  flex-wrap:wrap;
-  gap:var(--sp-2) var(--sp-5);
-  padding:var(--sp-3) var(--sp-4);
-  border:1px solid var(--steel);
-  border-bottom:none;
-  background:var(--surface-card);
-}
-/* The verdict is one run of text, so the dot stays with the first word on a narrow
-   line and the sentence wraps as prose. */
+/* The verdict answers the glance in one line, and a tile per count stands under it. */
+.verdict{margin-bottom:var(--sp-5)}
 .verdict-text{
-  margin:0;
-  font-size:var(--fs-h2);
+  margin:0 0 var(--sp-4);
+  padding:var(--sp-4) var(--sp-5);
+  border-radius:var(--r-lg);
+  background:var(--quiet-soft);
+  font-size:var(--fs-h3);
   font-weight:var(--fw-semibold);
-  line-height:var(--lh-head);
+  letter-spacing:var(--ls-h2);
+  line-height:1.4;
+  overflow-wrap:anywhere;
 }
-.verdict-text .dot{margin-right:var(--sp-2); vertical-align:.15em}
-/* Martian Mono has a taller x-height than the sans, so the fault id takes one size down
-   to match the sentence by eye. */
-.verdict-fault{font-size:var(--fs-h3); font-weight:var(--fw-semibold); margin-left:var(--sp-2)}
-.verdict-counts{margin:0 0 0 auto; color:var(--text-secondary); display:flex; flex-wrap:wrap; column-gap:var(--sp-2)}
-/* The separator ends the item before it, so a wrapped line never starts with one. */
-.count:not(:last-child)::after{content:"·"; margin-left:var(--sp-2); color:var(--text-tertiary)}
-.count-tick,
-.count-mode{display:none}
-.count:nth-last-child(2)::after,
-.count:nth-last-child(3)::after{content:none}
+.verdict-text.ok{background:var(--ok-soft)}
+.verdict-text.warn{background:var(--warn-soft)}
+.verdict-text.crit{background:var(--crit-soft)}
+.verdict-text .dot{width:10px; height:10px; margin-right:var(--sp-3); vertical-align:.05em}
+.verdict-fault{font-size:16px; font-weight:var(--fw-semibold); margin-left:var(--sp-2)}
+.verdict-counts{margin:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:var(--sp-4)}
+.count{
+  display:flex;
+  flex-direction:column-reverse;
+  justify-content:flex-end;
+  gap:var(--sp-1);
+  padding:var(--sp-4) var(--sp-5);
+  border:1px solid var(--border-default);
+  border-radius:var(--r-lg);
+  background:var(--surface-card);
+  box-shadow:var(--shadow-card);
+  min-width:0;
+}
+.count-value{font-size:var(--fs-stat); font-weight:var(--fw-bold); letter-spacing:var(--ls-h1); line-height:1.3; font-variant-numeric:tabular-nums; overflow-wrap:anywhere}
+.count-word{display:flex; align-items:center; gap:var(--sp-2); min-height:34px; font-size:var(--fs-h3); font-weight:var(--fw-semibold)}
+.count-name{font-size:var(--fs-micro); color:var(--text-tertiary)}
+.count-name::first-letter{text-transform:uppercase}
 
-/* The board: one frame, fixed columns, and a hairline gutter between square cells. A
-   column never moves; only the values in it change. */
-.board-frame{border:1px solid var(--steel); background:var(--surface-page); overflow-x:auto}
-.board{width:100%; border-collapse:separate; border-spacing:1px; font-variant-numeric:tabular-nums}
+/* The board: one card, fixed columns, one row per tailnet. */
+.board-frame{border:1px solid var(--border-default); border-radius:var(--r-lg); background:var(--surface-card); box-shadow:var(--shadow-card); overflow-x:auto; container-type:inline-size}
+.board{width:100%; border-collapse:separate; border-spacing:0; font-variant-numeric:tabular-nums}
 .board th,
-.board td{padding:var(--sp-2) var(--sp-3); text-align:left; white-space:nowrap; vertical-align:middle}
-.board thead th{
+.board td{padding:13px var(--sp-4); text-align:left; vertical-align:middle}
+.board thead th,
+.log thead th,
+.peers-table thead th{
+  padding-top:11px;
+  padding-bottom:11px;
+  background:var(--surface-raised);
+  border-bottom:1px solid var(--border-default);
   font-family:var(--font-body);
   font-size:var(--fs-label);
-  font-weight:var(--fw-medium);
+  font-weight:var(--fw-semibold);
   letter-spacing:var(--ls-label);
-  text-transform:uppercase;
-  color:var(--text-tertiary);
-  padding-top:var(--sp-2);
-  padding-bottom:var(--sp-2);
+  color:var(--text-secondary);
+  text-align:left;
+  white-space:nowrap;
 }
-/* Each value cell carries the split of a flap across its middle: a dark line over a
-   lighter line, so it reads as two leaves meeting and not as one more gutter. It is a
-   background image, so it sits behind the characters, and the hover and the selection
-   change the face colour and keep the split. */
 .board tbody th,
-.board tbody td{
-  background-color:var(--surface-card);
-  background-image:linear-gradient(to bottom, transparent calc(50% - 1px), var(--surface-page) calc(50% - 1px), var(--surface-page) 50%, var(--surface-inset) 50%, var(--surface-inset) calc(50% + 1px), transparent calc(50% + 1px));
-  color:var(--text-body);
-  height:44px;
-}
+.board tbody td{border-top:1px solid var(--border-soft); color:var(--text-body)}
+.board tbody tr:first-child th,
+.board tbody tr:first-child td{border-top:none}
 .board tbody td.absent{color:var(--text-tertiary)}
-.board tbody th{color:var(--text-body); font-weight:var(--fw-semibold)}
+.board tbody th{font-weight:var(--fw-bold); font-size:var(--fs-sm); overflow-wrap:break-word; min-width:9ch}
+.board tbody td{overflow-wrap:break-word}
+.board thead th.num,
 .board .num{text-align:right}
-.board .state{display:table-cell}
-.board .state .dot{margin-right:var(--sp-2); vertical-align:middle}
-.board tbody tr{cursor:pointer}
-.board tbody tr:hover th,
-.board tbody tr:hover td{background-color:var(--surface-raised)}
-/* The selection is an inset row with the tailnet in the body colour, in every view. The
-   accent means an allowed path and nothing else: the topology draws the paths of the
-   selection in it. */
-.board tbody tr[aria-selected="true"] th,
-.board tbody tr[aria-selected="true"] td{background-color:var(--surface-inset)}
+.board .num,
+.board .badge{white-space:nowrap}
+.board tbody tr{cursor:pointer; transition:background var(--dur-1) var(--ease)}
+.board tbody tr:hover{background:var(--surface-raised)}
+/* The selection is an accent wash with a bar at the edge of the row. */
+.board tbody tr[aria-selected="true"]{background:var(--accent-soft)}
+.board tbody tr[aria-selected="true"] .badge,
+.pol-row[aria-selected="true"] .badge{background:var(--surface-card)}
+.board tbody tr[aria-selected="true"] > :first-child{box-shadow:inset 3px 0 0 var(--accent-strong)}
 
 /* The turnover. A changed value turns over once, one character after the next. */
 .val{display:inline-block}
@@ -362,105 +538,78 @@ select.field{
   .flap{animation:none}
 }
 
+/* The detail row of the board shows on a phone only. */
+.board-detail{display:none}
+.board .board-detail td{background:var(--surface-raised); padding:var(--sp-2) var(--sp-4)}
+
+/* A frame that is too narrow for every column drops the optional ones, and the detail row
+   of the selected tailnet states them. */
+@container (max-width:1240px){
+  .board th,
+  .board td{padding-left:10px; padding-right:10px}
+  .board th:first-child,
+  .board td:first-child{padding-left:var(--sp-4)}
+}
+@container (max-width:900px){
+  .board .opt{display:none}
+  .board-detail{display:table-row}
+  .board .badge{white-space:normal}
+}
+
 /* Below the board: the topology and the notable events. */
 .lower{display:grid; grid-template-columns:minmax(0,1fr) var(--w-side); gap:var(--sp-5); margin-top:var(--sp-5); align-items:start}
-.frame{border:1px solid var(--border-default); background:var(--surface-page); padding:0 var(--sp-4) var(--sp-4)}
-.frame-head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:var(--sp-3);
-  min-height:44px;
-  margin:0 calc(var(--sp-4) * -1) var(--sp-4);
-  padding:0 var(--sp-4);
-  background:var(--surface-card);
-  border-bottom:1px solid var(--border-default);
-}
-.frame-title{font-size:var(--fs-body); margin:0}
-.frame-head:has(.frame-tools){align-items:center; flex-wrap:wrap}
-.frame-tools{display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-right:auto; margin-left:var(--sp-3)}
-/* A control in a header strip is compact, so no tool makes the strip taller than 44
-   pixels. */
-.frame-head .btn,
-.frame-head .seg button{padding:var(--sp-1) var(--sp-3); min-height:30px}
-.frame-meta{color:var(--text-tertiary)}
-.frame-link{color:var(--text-secondary); font-size:var(--fs-sm)}
-.frame-link:hover{color:var(--text-body)}
-.frame > .note:first-child{margin-top:var(--sp-4)}
 
 .flow-wrap{min-width:0}
-/* The picture keeps the size it is drawn at, so its text matches the size of the board
-   text. A wider frame does not scale it up. */
-svg.flow{width:100%; max-width:660px; height:auto; display:block; overflow:visible; margin:0 auto}
+/* The picture keeps the size it is drawn at. A wider frame does not scale it up. */
+svg.flow{max-width:100%; height:auto; display:block; overflow:visible; margin:0 auto}
 
-.node rect{fill:var(--surface-card); stroke:var(--border-default)}
-.node text.n{fill:var(--text-body); font-family:var(--font-data); font-stretch:var(--stretch-mono); font-size:var(--fs-data)}
-.node text.s{fill:var(--text-tertiary); font-family:var(--font-data); font-stretch:var(--stretch-mono); font-size:var(--fs-label)}
+.node rect{fill:var(--surface-raised); stroke:var(--border-default); rx:10px}
+.node:hover rect{stroke:var(--text-tertiary)}
+.node text.n{fill:var(--text-body); font-family:var(--font-data); font-size:13px; font-weight:var(--fw-semibold)}
+.node text.s{fill:var(--text-secondary); font-family:var(--font-data); font-size:12px}
+/* A picture that the page scales down keeps the advance of each character. */
+.node text{text-rendering:geometricPrecision}
 .node circle.dot{fill:var(--text-tertiary)}
 .node circle.dot.ok{fill:var(--status-ok)}
 .node circle.dot.warn{fill:var(--status-warn)}
 .node circle.dot.crit{fill:var(--status-crit)}
 .node{cursor:pointer}
 /* An SVG group is not a CSS box, therefore box-shadow draws no ring on it and the rule
-   draws the ring with the outline property. The ring is not the accent: the accent of
-   this view belongs to the selection. */
-.node:focus-visible{outline:2px solid var(--text-body); outline-offset:2px; border-radius:var(--r)}
-.node[aria-pressed="true"] rect{stroke:var(--text-body)}
+   draws the ring with the outline property. */
+.node:focus-visible{outline:2px solid var(--accent-strong); outline-offset:2px; border-radius:var(--r)}
+.node[aria-pressed="true"] rect{stroke:var(--accent-strong); stroke-width:2; fill:var(--surface-card)}
 
 /* An allowed path is a dotted curve. A denied path has no line at all, therefore this
-   file declares no rule for one. The accent belongs to the paths of the selected node. */
+   file declares no rule for one. */
 .edge{fill:none; stroke:var(--edge); stroke-width:1.4; stroke-dasharray:2 6; stroke-linecap:round}
-.edge.sel{stroke:var(--edge-active)}
-.edge.muted{stroke:var(--border-soft)}
+.edge.sel{stroke:var(--edge-active); stroke-width:2}
+.edge.muted{stroke:var(--border-default)}
 
-.events{margin-top:0}
+.events{margin-top:calc(var(--sp-3) * -1)}
 .ev{display:flex; gap:var(--sp-3); padding:var(--sp-3) 0; border-bottom:1px solid var(--border-soft); align-items:baseline}
-.ev:last-child{border-bottom:none}
-.ev time{color:var(--text-tertiary); flex:none; width:64px; font-size:var(--fs-micro)}
+.ev:last-child{border-bottom:none; padding-bottom:0}
+.ev time{color:var(--text-tertiary); flex:none; font-size:var(--fs-micro)}
 /* The event type is a machine value that the operator scans, therefore the column holds
    the whole type and truncates none. The width is a minimum: a type wider than it makes
-   the column grow, and the message takes the width that remains. A fixed width drew a
-   long type outside its box and over the message. See issue #226. */
-.ev-kind{color:var(--text-secondary); flex:none; min-width:112px; font-size:var(--fs-micro)}
-.ev p{margin:0; font-size:var(--fs-sm); color:var(--text-body); min-width:0}
+   the column grow, and the message takes the width that remains. See issue #226. */
+.ev-kind{color:var(--text-body); font-weight:var(--fw-semibold); min-width:112px; font-size:var(--fs-micro); overflow-wrap:anywhere}
+.ev p{margin:0; font-size:var(--fs-sm); color:var(--text-secondary); min-width:0; overflow-wrap:anywhere}
 
-/* The events panel of the overview is 320 pixels wide. A time and a type leave the
-   message too little width there, and the message then wraps to one word for each line.
-   The row of that panel therefore wraps: the time and the type take the first line, and
-   the message takes the whole width of the panel below them. The row keeps the baseline
-   alignment, because a wrapped flex container aligns the items of each line on their own.
-   The activity view is wider and keeps the one-line row. See issue #236. */
-.ev-stack{flex-wrap:wrap; row-gap:var(--sp-1)}
+/* The events panel of the overview is narrow. The row of that panel therefore wraps: the
+   time and the type take the first line, and the message takes the whole width of the
+   panel below them. See issue #236. */
+.ev-stack{flex-wrap:wrap; row-gap:2px}
 .ev-stack p{flex:1 0 100%}
 
-/* The affirmative action is the one thing that takes the accent, in every view. The
-   overview empty state, the namespace add flow, and the removal dialog all use this one
-   rule, so no view holds a second accent use. See FR-console-40. */
-.btn.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:var(--fw-semibold)}
-a.btn{display:inline-block; text-decoration:none}
-a.btn:focus-visible{outline:none; box-shadow:var(--ring-focus)}
+/* ---- The settings --------------------------------------------------------------------- */
 
-/* The DNS view, the activity view, and the settings view.
-   These views hold no accent: neither holds an affirmative action, a selection, or an
-   allowed path. A state is a coloured dot and a lowercase word, and no rule tints a whole
-   card, a whole row, or a whole edge. See FR-console-40. */
-
-/* The settings view: titled frames in two columns, each as tall as its content. */
-/* Two columns in rows, so the frames of one row share a top edge and a bottom edge. An
-   alert spans both columns. */
-.settings-grid{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:var(--sp-5); align-items:start}
-.set-interval{margin-top:var(--sp-4); padding-top:var(--sp-3); border-top:1px solid var(--border-default)}
-.set-sub{margin:0 0 var(--sp-2); font-size:var(--fs-sm); font-weight:var(--fw-semibold); color:var(--text-secondary)}
-.settings-grid > .alert{grid-column:1 / -1}
-@media (max-width:1040px){
-  .settings-grid{grid-template-columns:minmax(0,1fr)}
-}
-/* An alert inside a frame states its dot and its sentences with no second box. */
-.frame .alert,
-.card .alert{border:none; padding:0; background:transparent}
-/* A machine value inside a sentence takes the value size, which matches the sans by eye,
-   and no line break divides it. */
-.note .mono{font-size:var(--fs-data); white-space:nowrap}
+/* Two columns of frames, so a short frame leaves no gap under it. */
+.settings-grid{columns:2; column-gap:var(--sp-5)}
+.settings-grid > *{break-inside:avoid; margin:0 0 var(--sp-5)}
+.set-interval{margin-top:var(--sp-4); padding-top:var(--sp-4); border-top:1px solid var(--border-soft)}
+.set-sub{margin:0 0 var(--sp-2); font-size:var(--fs-sm); font-weight:var(--fw-semibold)}
+.set-interval .row{margin-top:var(--sp-3)}
+.settings-grid > .alert{column-span:all}
 .frame > .note,
 .frame > .alert,
 .frame > .nsrows,
@@ -469,440 +618,230 @@ a.btn:focus-visible{outline:none; box-shadow:var(--ring-focus)}
 .frame > .frame-head + .alert,
 .frame > .frame-head + .row{margin-top:0}
 
-/* A description list: the label is a sentence and the value is a machine value. The
-   label column has one width, so every value of a frame starts at the same edge. */
+/* A description list: the label is a sentence and the value is a machine value. */
 .kv-list{margin:0}
-.kv{
-  display:grid;
-  grid-template-columns:var(--w-kv) minmax(0,1fr);
-  gap:var(--sp-4);
-  padding:var(--sp-2) 0;
-  border-bottom:1px solid var(--border-soft);
-  align-items:baseline;
-}
-.kv:last-child{border-bottom:none}
-.kv dt{color:var(--text-secondary); font-size:var(--fs-sm)}
-.kv dd{
-  margin:0;
-  font-family:var(--font-data);
-  font-size:var(--fs-data);
-  font-stretch:var(--stretch-mono);
-  letter-spacing:var(--ls-mono);
-  color:var(--text-body);
-  overflow-wrap:anywhere;
-}
-/* A value that the daemon does not report is a sentence, so it keeps the sans typeface. */
-.kv dd.unset{font-family:var(--font-body); font-stretch:normal; font-size:var(--fs-sm); color:var(--text-tertiary); letter-spacing:var(--ls-body)}
-
-/* One row per namespace, with the protected state. The columns match the label column
-   of a description list, so a frame holds one left edge for its values. */
-.nsrow{
+.kv,
+.nsrow,
+.ns-pair{
   display:grid;
   grid-template-columns:var(--w-kv) minmax(0,1fr);
   gap:var(--sp-1) var(--sp-4);
-  padding:var(--sp-2) 0;
+  padding:10px 0;
   border-bottom:1px solid var(--border-soft);
   align-items:baseline;
 }
-.nsrow:last-child{border-bottom:none}
-.nsrow .st{display:flex; align-items:center; gap:var(--sp-2); color:var(--text-body); font-family:var(--font-data); font-stretch:var(--stretch-mono); font-size:var(--fs-data)}
+.kv:last-child,
+.nsrow:last-child,
+.ns-pair:last-child{border-bottom:none}
+.kv-list > .kv:first-child{padding-top:0}
+.kv dt,
+.ns-pair dt{color:var(--text-secondary); font-size:var(--fs-sm)}
+.kv dt::first-letter,
+.ns-pair dt::first-letter{text-transform:uppercase}
+.kv dd,
+.ns-pair dd{margin:0; color:var(--text-body); overflow-wrap:anywhere}
+.kv dd.unset{font-size:var(--fs-sm); color:var(--text-tertiary)}
+
+/* One row per namespace, with the protected state. */
+.nsrow .id{font-weight:var(--fw-semibold); overflow-wrap:anywhere}
+.nsrow .st{justify-self:start}
 .nsrow .err{grid-column:2; color:var(--text-secondary); font-size:var(--fs-micro); overflow-wrap:anywhere}
-.nsrow .domains{color:var(--text-body)}
+.nsrow .domains{color:var(--text-body); overflow-wrap:anywhere}
 .nsrows + .alert{margin-top:var(--sp-3)}
 
-/* A banner states one fact that the operator acts on. The dot carries the state and the
-   border carries the tone, so no rule fills a region with a state colour. */
-.alert{
-  display:flex;
-  gap:var(--sp-3);
-  align-items:flex-start;
-  padding:var(--pad-row);
-  border:1px solid var(--border-default);
-  border-radius:var(--r);
-  background:var(--surface-card);
-}
-.alert .dot{margin-top:6px}
-.alert p{margin:0; font-size:var(--fs-sm); color:var(--text-body); max-width:var(--maxw-read)}
-.alert p + p{margin-top:var(--sp-2); color:var(--text-secondary)}
-.card > .alert{margin-top:var(--sp-3)}
+/* ---- The activity ----------------------------------------------------------------------- */
 
-/* The activity log: fixed columns, one date header for each day, and one folded row for
-   each reconcile tick. The message column takes the width that remains. */
-.log-frame{padding:0}
+/* Fixed columns, one date header for each day, and one folded row for each reconcile tick. */
+.log-frame{padding:0 0 var(--sp-4)}
 .log-frame .frame-head{margin:0}
 .log-frame > .note,
 .log-frame .log-wrap > .note,
-.log-frame .log-wrap > .alert{margin:var(--sp-4)}
+.log-frame .log-wrap > .alert{margin:var(--sp-4) var(--sp-5) 0}
 .log-wrap{overflow-x:auto}
+.log{width:100%; border-collapse:collapse; table-layout:fixed}
+.log thead th{padding-left:var(--sp-3); padding-right:var(--sp-3)}
 .log thead th:first-child,
 .log td:first-child,
-.log tr.day th{padding-left:var(--sp-4)}
+.log tr.day th{padding-left:var(--sp-5)}
 .log.no-tailnet th:nth-child(2),
 .log.no-tailnet td:nth-child(2){display:none}
-.log{width:100%; border-collapse:collapse; table-layout:fixed}
-.log thead th{
-  font-family:var(--font-body);
-  font-size:var(--fs-label);
-  font-weight:var(--fw-medium);
-  letter-spacing:var(--ls-label);
-  text-transform:uppercase;
-  color:var(--text-tertiary);
-  text-align:left;
-  padding:var(--sp-3) var(--sp-3) var(--sp-2);
-  border-bottom:1px solid var(--border-default);
-}
-.log thead th:nth-child(1){width:96px}
-.log thead th:nth-child(2){width:132px}
-.log thead th:nth-child(3){width:180px}
-.log td{padding:var(--sp-2) var(--sp-3); border-bottom:1px solid var(--border-soft); vertical-align:baseline; overflow-wrap:anywhere}
+.log thead th:nth-child(1){width:118px}
+.log thead th:nth-child(2){width:150px}
+.log thead th:nth-child(3){width:220px}
+.log td{padding:10px var(--sp-3); border-bottom:1px solid var(--border-soft); vertical-align:baseline; overflow-wrap:anywhere}
+.log tr.log-row:hover{background:var(--surface-raised)}
 .log tr.day th{
   text-align:left;
-  padding:var(--sp-4) var(--sp-3) var(--sp-2);
+  padding:var(--sp-4) var(--sp-5) var(--sp-2);
   color:var(--text-secondary);
-  font-weight:var(--fw-medium);
-  border-bottom:1px solid var(--border-default);
+  font-weight:var(--fw-semibold);
+  border-bottom:1px solid var(--border-soft);
 }
 .log .t{color:var(--text-tertiary)}
 .log .n{color:var(--text-secondary)}
-.log .k{color:var(--text-body)}
+.log .k{color:var(--text-body); font-weight:var(--fw-semibold)}
 .log .m{font-size:var(--fs-sm); color:var(--text-body)}
 .log .d{display:block; margin-top:2px; color:var(--text-tertiary); font-size:var(--fs-micro)}
-.log tr.tick .k{color:var(--text-tertiary)}
+.log tr.tick .k{color:var(--text-tertiary); font-weight:var(--fw-regular)}
 .log tr.tick .m{color:var(--text-secondary)}
-.log-empty{margin:0}
-.log-cap{margin-top:var(--sp-3)}
-.log-wrap > .alert{margin-bottom:var(--sp-4)}
 
-/* A link inside a sentence keeps the body colour, because the accent belongs to one thing
-   per view and this view gives it to nothing. */
-.note a{color:var(--text-body)}
-.note a:focus-visible{outline:none; box-shadow:var(--ring-focus)}
+/* ---- The namespaces ------------------------------------------------------------------------ */
 
-@media (max-width:1040px){
-  .lower{grid-template-columns:1fr}
-}
-
-/* A tablet keeps the columns of the phone tier and the tablet tier of the board. */
-@media (max-width:900px){
-  .board .opt{display:none}
-  .verdict-counts{margin-left:0}
-}
-
-/* A narrow screen puts the rail on top as one row that scrolls sideways, and the title
-   block moves out of the way: the verdict states the state of the daemon. */
-@media (max-width:900px){
-  /* A narrow screen keeps the brand in a bar at the top and moves the six views into a
-     fixed index of six cells at the bottom, so every view is one press away and none
-     hides behind a sideways scroll. The current view reverses its cell, as it does in
-     the rail. */
-  .app{grid-template-columns:1fr; grid-template-rows:auto 1fr; align-content:start; background:none}
-  .nav{
-    position:static;
-    height:auto;
-    border-right:none;
-    border-bottom:1px solid var(--border-default);
-    flex-direction:row;
-    align-items:center;
-    padding:var(--sp-3) var(--sp-4);
-  }
-  .brand{padding:0}
-  .nav-index{
-    position:fixed;
-    inset:auto 0 0 0;
-    z-index:5;
-    display:grid;
-    grid-template-columns:repeat(6, minmax(0,1fr));
-    gap:1px;
-    background:var(--border-default);
-    border-top:1px solid var(--border-default);
-    padding-bottom:env(safe-area-inset-bottom);
-  }
-  .nav-link{
-    flex-direction:column;
-    justify-content:center;
-    gap:2px;
-    min-height:56px;
-    padding:var(--sp-1) 0;
-    background:var(--surface-card);
-    font-size:var(--fs-micro);
-    text-align:center;
-    white-space:nowrap;
-  }
-  .nav-link[aria-current]{background:var(--surface-raised)}
-  .key{width:22px; height:22px}
-  /* The title block becomes one row of the top bar, beside the brand. */
-  .title-block{display:flex; margin:0 0 0 auto; border:none}
-  .title-block div{flex-direction:row; align-items:baseline; gap:var(--sp-2); padding:0 0 0 var(--sp-4)}
-  .title-block div + div{border-top:none}
-  .main{padding:var(--sp-4) var(--sp-4) calc(var(--sp-7) + 56px + env(safe-area-inset-bottom))}
-}
-
-/* A phone keeps the narrow columns of the board, and it reads the topology as its text
-   equivalent, because the picture is too small to read there. */
-@media (max-width:600px){
-  .board .mid{display:none}
-  /* A phone has no width for the title block, so the verdict line states the access mode
-     and the last tick. */
-  .title-block{display:none}
-  .count-tick,
-  .count-mode{display:inline}
-  .count:nth-last-child(2)::after,
-  .count:nth-last-child(3)::after{content:"·"}
-  .board th,
-  .board td{padding:var(--sp-2)}
-  .log thead{display:none}
-  .log, .log tbody{display:block}
-  .log tr.day{display:block}
-  .log tr.day th{display:block}
-  .log tr.log-row{display:grid; grid-template-columns:auto 1fr; column-gap:var(--sp-3); row-gap:2px; padding:var(--sp-2) 0; border-bottom:1px solid var(--border-soft)}
-  .log tr.log-row td{padding:0; border:none}
-  .log tr.log-row .n:empty{display:none}
-  .log tr.log-row .m{grid-column:1 / -1}
-}
-
-/* The namespace view: the list, the panel, the add flow, and the removal dialog. The
-   affirmative action takes the accent from the one .btn.primary rule above. The selected
-   row shows the selection with a surface and a border, so the view holds one accent use. */
-
-.btn.primary:hover{filter:brightness(.92)}
-
-.ns-sm{font-size:var(--fs-sm)}
-.ns-danger{color:var(--status-crit); border-color:var(--status-crit)}
-
-/* The table of tailnets and, when a row is selected, the panel beside it. */
 .ns-grid{display:grid; grid-template-columns:minmax(0,1fr); gap:var(--sp-5); align-items:start}
-.ns-grid.ns-open{grid-template-columns:minmax(0,1fr) 380px}
-.ns-list{min-width:0}
+.ns-grid.ns-open{grid-template-columns:minmax(0,1fr) 400px}
 .ns-list .frame-head .btn{margin-left:auto}
 /* The table fills its frame edge to edge, so the frame draws the one border. */
-.ns-list{padding:0}
-.ns-list .frame-head{margin:0}
-.ns-list .board-frame{border:none}
-.ns-list > .note{padding:var(--sp-4)}
-
-/* The selection of this view is a raised row with the tailnet in the body colour. The
-   accent of this view belongs to the add action alone. */
-.ns-board tbody tr[aria-selected="true"] th{color:var(--text-body)}
-.ns-board tbody tr[aria-selected="true"] th,
-.ns-board tbody tr[aria-selected="true"] td{background-color:var(--surface-inset)}
+.ns-list{padding:0; overflow:hidden}
+.ns-list .frame-head{margin:0; border-bottom:none}
+.ns-list .board-frame{border:none; border-radius:0; border-top:1px solid var(--border-default); box-shadow:none}
+.ns-list > .note{padding:0 var(--sp-5) var(--sp-5)}
 .ns-muted{opacity:.5; cursor:default}
-.ns-state{display:inline}
-.ns-state .dot{margin-right:var(--sp-2); vertical-align:middle}
-.ns-word{color:var(--text-body); font-family:var(--font-data); font-stretch:var(--stretch-mono); font-size:var(--fs-data)}
-.ns-none{color:var(--text-tertiary)}
+.ns-word{font-family:var(--font-data); font-size:12.5px; letter-spacing:var(--ls-mono)}
 .ns-pending{color:var(--text-tertiary); font-size:var(--fs-sm)}
-/* An address holds no space that breaks it, so a narrow cell cuts it with an ellipsis
-   and keeps it inside the cell. See issue #354. */
-.ns-addr{
-  display:block;
-  max-width:24ch;
-  color:var(--text-body);
-  min-width:0;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
+/* The address wraps inside its cell, so the cell shows every character of it and the
+   address never draws over the panel. See issue #354. */
+.ns-addr{display:block; min-width:0; color:var(--text-body); overflow-wrap:anywhere}
 
-.ns-panel{position:sticky; top:var(--sp-5)}
-.ns-panel .frame-head .btn{margin-left:auto}
-.ns-panel-states{display:flex; flex-wrap:wrap; gap:var(--sp-2) var(--sp-4)}
-/* A section of the panel opens with a column head and a rule, as the board does. */
-.ns-section{display:block; margin-top:var(--sp-5); padding-bottom:var(--sp-2); border-bottom:1px solid var(--border-default)}
-
-.ns-kv{margin:var(--sp-4) 0 0}
-.ns-pair{display:grid; grid-template-columns:var(--w-kv) minmax(0,1fr); gap:var(--sp-4); padding:var(--sp-2) 0; border-bottom:1px solid var(--border-soft); align-items:baseline}
-.ns-pair:last-child{border-bottom:none}
-.ns-pair dt{color:var(--text-secondary); font-size:var(--fs-sm)}
-.ns-pair dd{margin:0; color:var(--text-body); overflow-wrap:anywhere}
-
-/* A tailnet with 200 peers scrolls inside the panel and never pushes the actions away. */
-.ns-peers-list{margin-top:var(--sp-3)}
-.ns-more{margin-top:var(--sp-2)}
-/* The detail row of the board shows on a phone only. */
-.board-detail{display:none}
-.board .board-detail td{background:var(--surface-inset); background-image:none; height:auto; padding:var(--sp-2) var(--sp-3)}
-.ns-peer{display:grid; grid-template-columns:minmax(0,1fr) auto; gap:var(--sp-3); padding:var(--sp-2) 0; border-bottom:1px solid var(--border-soft)}
+.ns-panel .frame-head{flex-wrap:nowrap}
+.ns-panel .frame-head .btn{margin-left:auto; flex:none}
+.ns-panel-states{display:flex; flex-wrap:wrap; gap:var(--sp-2)}
+.ns-section,
+.ns-notice > .label,
+.ac-flow-cap .label{font-size:var(--fs-sm); font-weight:var(--fw-semibold); color:var(--text-body)}
+.ns-section,
+.ns-notice > .label{display:block; margin-top:var(--sp-6); padding-bottom:var(--sp-2); border-bottom:1px solid var(--border-default)}
+.ns-kv{margin:var(--sp-3) 0 0}
+.ns-more{margin-top:var(--sp-3)}
+.ns-peer{display:flex; flex-wrap:wrap; justify-content:space-between; gap:2px var(--sp-3); padding:var(--sp-2) 0; border-bottom:1px solid var(--border-soft); overflow-wrap:anywhere}
 .ns-peer:last-child{border-bottom:none}
-.ns-peer-addr{color:var(--text-tertiary); font-size:var(--fs-data)}
+.ns-peer > *{min-width:0}
+.ns-peer-addr{color:var(--text-tertiary)}
 
 /* A service holds no state and no last-seen time, so its row holds three machine values and
    no dot. The address cell wraps, because a service answers on one address of each family. */
-.ns-services-list{margin-top:var(--sp-3)}
-.ns-service{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto; gap:var(--sp-3); padding:var(--sp-2) 0; border-bottom:1px solid var(--border-soft); align-items:baseline}
+.ns-service{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:2px var(--sp-3); padding:var(--sp-2) 0; border-bottom:1px solid var(--border-soft); align-items:baseline; overflow-wrap:anywhere}
 .ns-service:last-child{border-bottom:none}
+.ns-service > :first-child{grid-column:1 / -1}
 .ns-service-addr,
-.ns-service-ports{color:var(--text-tertiary); font-size:var(--fs-data); overflow-wrap:anywhere}
+.ns-service-ports{color:var(--text-tertiary); overflow-wrap:anywhere}
 
-.ns-events{margin-top:var(--sp-3)}
-.ns-event{display:grid; grid-template-columns:132px minmax(0,1fr); gap:var(--sp-3); padding:var(--sp-2) 0; border-bottom:1px solid var(--border-soft); align-items:baseline}
+.ns-event{padding:var(--sp-2) 0; border-bottom:1px solid var(--border-soft)}
 .ns-event:last-child{border-bottom:none}
-.ns-event-kind{color:var(--text-tertiary); font-size:var(--fs-data); overflow-wrap:anywhere}
-.ns-event-text{color:var(--text-secondary); font-size:var(--fs-sm)}
+.ns-event-kind{display:block; color:var(--text-body); font-weight:var(--fw-semibold); font-size:var(--fs-micro); overflow-wrap:anywhere}
+.ns-event-text{display:block; color:var(--text-secondary); font-size:var(--fs-sm); overflow-wrap:anywhere}
+.ns-event-text.mono{font-size:var(--fs-micro)}
 
 .ns-notice{margin-top:var(--sp-4)}
-.ns-notice > .label{display:block; margin-top:var(--sp-5); padding-bottom:var(--sp-2); border-bottom:1px solid var(--border-default)}
 /* The credential reason names an environment variable of 33 characters, which no space
    breaks. The rule breaks it inside the panel. See issue #347. */
 .ns-reason{overflow-wrap:anywhere}
+.note.ns-reason{font-family:var(--font-data); font-size:var(--fs-micro); color:var(--text-body); padding:var(--sp-3) var(--sp-4); border-radius:var(--r); background:var(--surface-inset); margin-top:var(--sp-3)}
 .ns-cmds{
   display:flex;
   flex-direction:column;
   gap:var(--sp-2);
   margin-top:var(--sp-3);
-  padding:var(--pad-card);
+  padding:var(--sp-3) var(--sp-4);
   border-radius:var(--r);
   background:var(--surface-inset);
   color:var(--text-body);
   overflow-wrap:anywhere;
 }
+/* A removal command breaks at a space first. A wrapped line of a command indents two
+   columns under its first line. */
+.ns-cmds > span{padding-left:2ch; text-indent:-2ch}
+.ns-arg{display:inline-block; max-width:100%; text-indent:0}
 
-.ns-acts{display:flex; gap:var(--sp-2); margin-top:var(--sp-5); padding-top:var(--sp-4); border-top:1px solid var(--border-default); flex-wrap:wrap}
-.ns-dialog .ns-acts{border-top:none; padding-top:0}
-.ns-dialog-acts{justify-content:flex-end; margin-top:var(--sp-5)}
+.ns-acts{display:flex; gap:var(--sp-2); margin-top:var(--sp-5); padding-top:var(--sp-4); border-top:1px solid var(--border-soft); flex-wrap:wrap}
+.ns-dialog-acts{justify-content:flex-end}
 
+/* A dialog: a scrim over the page, and a card that holds the title and the actions. */
 .ns-scrim,
 .ac-scrim{
   position:fixed;
   inset:0;
   background:var(--scrim);
+  -webkit-backdrop-filter:blur(3px);
+  backdrop-filter:blur(3px);
   display:flex;
   align-items:center;
   justify-content:center;
   padding:var(--sp-6);
   z-index:9;
 }
-/* A dialog is a frame: one border, a header strip that holds the title, and a rule above
-   the actions. The scrim sets it apart from the page, so it carries no shadow. */
 .ns-dialog,
 .ac-dialog{
-  background:var(--surface-page);
+  background:var(--surface-card);
   border:1px solid var(--border-default);
   border-radius:var(--r-xl);
-  padding:0 var(--sp-5) var(--sp-5);
-  max-width:560px;
+  box-shadow:var(--shadow-pop);
+  padding:var(--sp-6);
+  max-width:620px;
   width:100%;
-  max-height:86vh;
+  max-height:90vh;
   overflow:auto;
 }
 .ns-dialog > h3:first-child,
-.ac-dialog > h3:first-child{
-  display:flex;
-  align-items:center;
-  min-height:48px;
-  margin:0 calc(var(--sp-5) * -1) var(--sp-4);
-  padding:0 var(--sp-5);
-  background:var(--surface-card);
-  border-bottom:1px solid var(--border-default);
-  font-family:var(--font-display);
-  font-size:var(--fs-h3);
-  font-weight:var(--fw-semibold);
-}
-.ns-dialog .ns-dialog-acts,
-.ac-dialog .ns-dialog-acts{border-top:1px solid var(--border-default); padding-top:var(--sp-4)}
+.ac-dialog > h3:first-child{margin:0 0 var(--sp-3); font-size:var(--fs-h2); font-weight:var(--fw-semibold); letter-spacing:var(--ls-h2); overflow-wrap:anywhere}
 
 .ns-form{display:flex; flex-direction:column; gap:var(--sp-4); margin-top:var(--sp-4)}
-.ns-field{display:flex; flex-direction:column; gap:var(--sp-2)}
-.ns-field .note{margin:0}
-.ns-check{flex-direction:row; align-items:center; gap:var(--sp-3); color:var(--text-secondary); font-size:var(--fs-sm)}
-.ns-error{color:var(--status-crit); font-size:var(--fs-sm)}
+.ns-field{display:flex; flex-direction:column; gap:6px}
+.ns-field .note{margin:0; font-size:var(--fs-micro)}
+.ns-field .field{width:100%}
+.ns-check{flex-direction:row; align-items:center; gap:var(--sp-3); min-height:44px; color:var(--text-secondary); font-size:var(--fs-sm)}
+.ns-check input{width:18px; height:18px; flex:none; margin:0; cursor:pointer}
+.ns-error{color:var(--status-crit); font-size:var(--fs-sm); overflow-wrap:anywhere}
 
-.ns-toast{
-  display:flex;
-  align-items:center;
-  gap:var(--sp-3);
-  margin-top:var(--sp-4);
-  padding:var(--pad-row);
-  border:1px solid var(--border-default);
-  border-radius:var(--r);
-  background:var(--surface-card);
-}
+.ns-toast{align-items:center; margin-top:var(--sp-4); background:var(--surface-card); box-shadow:var(--shadow-card)}
 .ns-toast .btn{margin-left:auto}
 
-@media (max-width:1040px){
-  .ns-grid.ns-open{grid-template-columns:1fr}
-  .ns-panel{position:static; max-height:none}
-}
+/* ---- The access ------------------------------------------------------------------------------ */
 
-/* The access view: the header, the observe statement, and the mode dialog. The apply
-   action is the one thing that takes the accent, through the .btn.primary rule above.
-   The mode and the staged count are states, so each one is a chip and no rule tints a
-   region with a state colour. Issue #149, issue #150 and issue #151 add the matrix, the
-   flow overview and the rule list. */
-
-.ac-head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:var(--sp-4);
-  flex-wrap:wrap;
-  margin-bottom:var(--sp-4);
-}
-.ac-states{display:flex; align-items:center; gap:var(--sp-2)}
+.ac-head{display:flex; align-items:center; justify-content:space-between; gap:var(--sp-4); flex-wrap:wrap; margin-bottom:var(--sp-5)}
+.ac-states{display:flex; align-items:center; flex-wrap:wrap; gap:var(--sp-2)}
+.ac-states .chip{padding:7px 12px}
 .ac-acts{display:flex; align-items:center; gap:var(--sp-2); flex-wrap:wrap}
+.ac-notice .ns-acts{margin-top:var(--sp-4)}
 
-/* A chip is a square cell that holds one machine value or one state. */
-.chip{
-  display:inline-flex;
+/* The list scrolls, because the operator can stage one edit per square of the matrix and
+   the list must leave the editor on the screen. */
+.ac-stagedlist{margin-top:var(--sp-3); max-height:260px; overflow-y:auto}
+.ac-stagedrow{
+  display:grid;
+  grid-template-columns:minmax(110px, max-content) minmax(0,1fr) 40px minmax(0,1fr) minmax(0,1fr);
   align-items:center;
-  gap:var(--sp-2);
-  padding:var(--sp-1) var(--sp-2);
-  border-radius:var(--r-sm);
-  border:1px solid var(--border-default);
-  background:var(--surface-page);
-  color:var(--text-secondary);
+  gap:var(--sp-3);
+  padding:10px 0;
+  border-bottom:1px solid var(--border-soft);
 }
-
-.ac-observe .ns-cmds{margin-top:var(--sp-3)}
-.ac-observe + .card{margin-top:var(--sp-3)}
-
-/* The staged list and the three statements that come before it: the offer to rebase, the
-   dropped rule, and the message of a refused apply. The list scrolls, because the operator
-   can stage one edit per square of the matrix and the list must leave the editor on the
-   screen. No rule here takes the accent; the apply action holds it. */
-
-.ac-notice{margin-top:var(--sp-3)}
-.ac-notice .ns-cmds{margin-top:var(--sp-3)}
-.ac-staged{margin-top:var(--sp-3)}
-.ac-stagedlist{margin-top:var(--sp-3); max-height:220px; overflow-y:auto}
-.ac-stagedrow{display:flex; align-items:center; gap:var(--sp-3); padding:var(--sp-2) 0; border-bottom:1px solid var(--border-soft)}
 .ac-stagedrow:last-child{border-bottom:none}
-.ac-stagedverb{color:var(--text-secondary); font-size:var(--fs-sm); min-width:150px; flex:none}
+.ac-stagedverb{color:var(--text-secondary); font-size:var(--fs-sm)}
 
-/* The flow overview. The picture reuses the .node rules and the .edge rules of the
-   overview topology above, therefore this block states the card alone. The accent reaches
-   the picture through .edge.sel, which marks the paths of the selected source. */
-
-.ac-flow-cap{display:flex; align-items:baseline; gap:var(--sp-2)}
+.ac-flow-cap{display:flex; align-items:baseline; flex-wrap:wrap; gap:var(--sp-2)}
+.ac-flow-cap .label{font-weight:var(--fw-regular); color:var(--text-tertiary)}
 .ac-flow .flow-wrap{margin-bottom:var(--sp-3)}
 
-/* The reachability matrix. The accent of this view marks the allowed path: a filled
-   square, and the row label and the column label of the square under the pointer. An
-   empty square is the absence of a rule, therefore no rule paints a refused path. The
-   square carries the radius token --r-xs, because a grid must read as a grid.
-   FR-editor-7 to FR-editor-15. */
-.ac-matrix{margin-top:var(--sp-3)}
+/* The reachability matrix. The accent marks the allowed path: a filled square, and the row
+   label and the column label of the square under the pointer. An empty square is the
+   absence of a rule, therefore no rule paints a refused path. FR-editor-7 to
+   FR-editor-15. */
 /* The policy editor wraps its matrix in .ac-mtx-wrap. The square holds a fixed size and the
    table never stretches to fill its card, therefore a document that names many identities
    makes the table wider than the card. The wrapper carries the scroll, so the matrix stays
-   inside its own card. The local access editor needs no wrapper, because it draws the
-   tailnets of the host and it shrinks the square on a dense host. Issue #387. */
+   inside its own card. Issue #387. */
 .ac-mtx-wrap{overflow-x:auto}
-.ac-mtx{--ac-square:34px; border-collapse:separate; border-spacing:4px; margin:var(--sp-3) 0 0 -8px}
-.ac-mtx th{
-  font-family:var(--font-data);
-  font-size:var(--fs-label);
-  font-weight:400;
-  letter-spacing:var(--ls-mono);
-  color:var(--text-tertiary);
-  text-align:left;
-  padding:0 4px;
-}
+.ac-matrix{overflow-x:auto}
+.ac-mtx{--ac-square:36px; border-collapse:separate; border-spacing:5px; margin:var(--sp-4) 0 0 -8px}
+.ac-mtx th{font-family:var(--font-data); font-size:var(--fs-micro); font-weight:var(--fw-medium); color:var(--text-secondary); text-align:left; padding:0 var(--sp-2)}
 /* A column head is a rotated label. The head is as tall as its longest label, and a label
-   ends at the squares, so a short label sits directly over its column and never floats
-   above it. The rotation turns the start of the line to the foot of the cell. */
+   ends at the squares. The rotation turns the start of the line to the foot of the cell. */
 .ac-mtx th.col{writing-mode:vertical-rl; transform:rotate(180deg); vertical-align:top; text-align:left; padding:0 0 var(--sp-2); line-height:var(--ac-square)}
+.ac-mtx tbody th,
+.ac-mtx td{vertical-align:middle}
+.ac-mtx tbody th{max-width:26ch; overflow-wrap:anywhere}
 .ac-mtx th.hot{color:var(--accent)}
 .ac-square{
+  display:block;
   width:var(--ac-square);
   height:var(--ac-square);
   padding:0;
@@ -910,105 +849,82 @@ a.btn:focus-visible{outline:none; box-shadow:var(--ring-focus)}
   border:1px solid var(--border-default);
   background:var(--surface-inset);
   cursor:pointer;
-  transition:background var(--dur-1) var(--ease);
+  transition:background var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
 }
-.ac-square:hover{background:var(--surface-raised)}
+.ac-square:hover{border-color:var(--accent)}
 .ac-square.on{background:var(--accent); border-color:var(--accent)}
-.ac-square.inert{background:transparent; border-color:var(--border-soft); cursor:default}
-.ac-square.inert:hover{background:transparent}
+.ac-square.on:hover{background:var(--accent-strong)}
+.ac-square.inert{background:transparent; border:1px dashed var(--border-default); cursor:default}
 
-/* The rule list. A row exists for an allowed path alone, therefore no rule paints a
-   refused path and no row carries a state colour. The connector is the dotted line of the
-   brand, and the port chip is a machine value in the mono typeface. The staged row takes
-   the word staged as a chip rather than the accent, because the accent of this view marks
-   the allowed path and the apply action. FR-editor-16 to FR-editor-22. */
-.ac-rules{margin-top:var(--sp-3)}
+/* The rule list. A row exists for an allowed path alone. The connector is the dotted line
+   of the brand, and the port chip is a machine value in the mono typeface.
+   FR-editor-16 to FR-editor-22. */
 .ac-rulelist{margin-top:var(--sp-3)}
-.ac-ruleline{padding:var(--sp-2) 0}
+.ac-ruleline{padding:var(--sp-3) 0}
 .ac-ruleline + .ac-ruleline{border-top:1px solid var(--border-soft)}
-/* A rule row is a grid: the source, the connector, and the destination take fixed
-   columns, so every row holds them at the same place whatever the length of a name. The
-   ports take the width that remains, and each control after them takes its own width. */
-.ac-rule{
-  display:grid;
-  grid-template-columns:16ch 48px 16ch minmax(0,1fr);
-  grid-auto-flow:column;
-  grid-auto-columns:max-content;
-  align-items:center;
-  gap:var(--sp-3);
-}
-.ac-end{color:var(--text-body); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.ac-conn{width:100%; height:0; border-top:1.4px dotted var(--edge)}
-.ac-ports{display:flex; gap:var(--sp-2); flex-wrap:wrap}
-.ac-noports{color:var(--text-tertiary); white-space:nowrap}
-.ac-states .chip{min-height:38px; padding:0 var(--sp-3)}
-.ac-rule .chip{min-height:36px}
-.ac-portfield{width:100%; max-width:36ch}
-/* A phone stacks the controls of a rule row below the path. */
-@media (max-width:600px){
-  .ac-rule{grid-template-columns:minmax(0,1fr) 32px minmax(0,1fr); grid-auto-flow:row}
-  .ac-rule > :nth-child(n+4){grid-column:1 / -1; justify-self:start}
-}
-.ac-del{flex:none}
+/* A rule row is a wrapping line: the path first, then the ports, the port field, and the
+   controls. A name takes the width of its text and wraps when it is wider than the card. */
+.ac-rule{display:flex; flex-wrap:wrap; align-items:center; gap:var(--sp-2) var(--sp-3)}
+.ac-rule > .ac-end{min-width:min(14ch, 30%)}
+.ac-end{color:var(--text-body); font-weight:var(--fw-semibold); overflow-wrap:anywhere; min-width:0}
+.ac-conn{flex:none; width:36px; height:0; border-top:2px dotted var(--edge)}
+.ac-stagedrow .ac-conn{width:100%}
+.ac-ports{display:flex; gap:6px; flex-wrap:wrap; min-width:0}
+.ac-noports{color:var(--text-tertiary); overflow-wrap:anywhere}
+.ac-portfield{flex:1 1 auto; min-width:min(180px, 100%)}
+.ac-rule .btn{margin-left:auto}
 .ac-ruleline .ns-error{display:block; margin-top:var(--sp-2)}
 .ac-ruleline .ns-error:empty{display:none}
+/* The port field holds the ports of the rule, or states "all ports" when it is empty, so
+   a row with a field states its ports once, in the field. */
+.ac-rule:has(.ac-portfield) .ac-noports,
+.ac-rule:has(.ac-portfield) .ac-ports{display:none}
 
-/* A grants entry's application capabilities, per FR-vacl-11. The visual editor edits a
-   capability's presence and its name alone; its own parameters stay text-only. */
 .ac-caps{display:flex; gap:var(--sp-2); flex-wrap:wrap; margin-top:var(--sp-2)}
-.ac-cap{display:flex; align-items:center; gap:var(--sp-2)}
-.ac-capfield{width:22ch}
+.ac-cap{display:flex; align-items:center; flex-wrap:wrap; gap:var(--sp-2)}
+.ac-capfield{min-width:22ch}
 
-/* The policy view: the tailnet list, the document editor, the two actions, and the result.
-   The accent of this view marks the push action and nothing else, because the push is the
-   affirmative action of the view. Issue #158 gave the accent to the selected row while the
-   view drew no action, and issue #159 moved it to the push. The selected row now shows the
-   selection with a surface and a brighter border, as the namespace list does.
-   The credential state of a row is a coloured dot and a lowercase word. The document is a
-   machine value, therefore the gutter and the text area both carry the mono typeface.
-   FR-policy-22 to FR-policy-28. */
+/* ---- The policy -------------------------------------------------------------------------------- */
 
-.pol-grid{display:grid; grid-template-columns:var(--w-side) minmax(0,1fr); gap:var(--sp-5); align-items:start}
-/* A frame inside the policy document frame is a section: a rule and a title, with no
-   second border and no second strip. */
-.pol-region .card{border:none; border-top:1px solid var(--border-default); padding:0; background:transparent; margin-top:var(--sp-4)}
+.pol-grid{display:grid; grid-template-columns:300px minmax(0,1fr); gap:var(--sp-5); align-items:start}
+.pol-grid:has(.pol-idle){align-items:stretch}
+/* A card inside the policy document frame is a section: a rule and a title, with no second
+   border. */
+.pol-region .card{border:none; border-top:1px solid var(--border-soft); border-radius:0; padding:var(--sp-2) 0 0; background:transparent; box-shadow:none; margin-top:var(--sp-4)}
 .pol-region .card > .label:first-child,
-.pol-region .card > .card-head:first-child{margin:0 0 var(--sp-3); padding:0; min-height:40px; background:transparent; border-bottom:none}
-.pol-side{min-width:0}
-.pol-main{min-width:0}
+.pol-region .card > .card-head:first-child{margin:0 0 var(--sp-3); padding:0; min-height:44px; border-bottom:none}
+.pol-side,
+.pol-main,
+.pol-region{min-width:0}
 
-/* The list of tailnets: one frame, one ruled row for each tailnet. A row holds the
-   identifier and the kind in fixed columns, and the credential state below them. */
-.pol-listframe{padding:0}
+.pol-listframe{padding:0; overflow:hidden}
 .pol-listframe .frame-head{margin:0}
 .pol-row{
   display:grid;
   grid-template-columns:minmax(0,1fr) auto;
-  gap:var(--sp-1) var(--sp-3);
-  padding:var(--sp-3) var(--sp-4);
+  gap:6px var(--sp-3);
+  padding:14px var(--sp-5);
   cursor:pointer;
   border-bottom:1px solid var(--border-soft);
   transition:background var(--dur-1) var(--ease);
 }
 .pol-row:last-child{border-bottom:none}
 .pol-row:hover{background:var(--surface-raised)}
-.pol-row[aria-selected="true"]{background:var(--surface-inset)}
-.pol-row:focus-visible{outline:none; box-shadow:var(--ring-focus)}
-.pol-id{color:var(--text-body); font-weight:var(--fw-semibold)}
-.pol-state{grid-column:1 / -1; display:flex; align-items:center; gap:var(--sp-2)}
-.pol-word{color:var(--text-body); font-family:var(--font-data); font-stretch:var(--stretch-mono); font-size:var(--fs-data)}
+.pol-row[aria-selected="true"]{background:var(--accent-soft); box-shadow:inset 3px 0 0 var(--accent-strong)}
+.pol-row:focus-visible{outline:none; box-shadow:inset var(--ring-focus)}
+.pol-id{color:var(--text-body); font-weight:var(--fw-bold); font-size:var(--fs-sm); overflow-wrap:anywhere}
+.pol-state{justify-self:start}
+.pol-row .pol-state{grid-column:1 / -1}
+.pol-word{font-family:var(--font-data); font-size:12.5px; letter-spacing:var(--ls-mono)}
+.pol-res-head .pol-word{font-size:var(--fs-data); font-weight:var(--fw-semibold)}
 .pol-kind{color:var(--text-tertiary); font-size:var(--fs-micro); text-align:right}
 
-/* The editor region before a document: the statement, the selection, and the reason. */
 .pol-idle .note{margin-top:var(--sp-2)}
-
-.pol-region{min-width:0}
-.pol-region > .pol-acts{margin-left:0; margin-right:0}
-.pol-warning{max-width:none; margin:0 0 var(--sp-3); padding-bottom:var(--sp-3); border-bottom:1px solid var(--border-default); color:var(--text-secondary)}
-.pol-name{display:block; color:var(--text-secondary); font-size:var(--fs-micro)}
+.pol-warning{max-width:none; margin:0 0 var(--sp-4)}
+.pol-name{color:var(--text-secondary); font-size:var(--fs-micro); overflow-wrap:anywhere}
 .pol-detail{
   margin:var(--sp-3) 0 0;
-  padding:var(--pad-card);
+  padding:var(--sp-3) var(--sp-4);
   border-radius:var(--r);
   background:var(--surface-inset);
   color:var(--text-body);
@@ -1016,23 +932,8 @@ a.btn:focus-visible{outline:none; box-shadow:var(--ring-focus)}
   overflow-wrap:anywhere;
 }
 
-.pol-ed{
-  margin-top:var(--sp-3);
-  border:1px solid var(--border-default);
-  border-radius:var(--r);
-  background:var(--surface-inset);
-  overflow:hidden;
-}
-.pol-bar{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:var(--sp-3);
-  padding:var(--sp-2) var(--sp-4);
-  border-bottom:1px solid var(--border-default);
-  background:var(--surface-raised);
-}
-.pol-bar .pol-name{display:inline}
+.pol-ed{margin-top:var(--sp-3); border:1px solid var(--border-default); border-radius:var(--r); background:var(--surface-page); overflow:hidden}
+.pol-bar{display:flex; align-items:center; justify-content:space-between; gap:var(--sp-3); padding:var(--sp-2) var(--sp-4); min-height:44px; border-bottom:1px solid var(--border-default); background:var(--surface-raised)}
 
 /* A 400 kilobyte document scrolls inside the editor and never pushes the view apart. The
    gutter scrolls with the text, therefore the two share one scrolling box.
@@ -1042,18 +943,12 @@ a.btn:focus-visible{outline:none; box-shadow:var(--ring-focus)}
    under overflow-y:hidden, and the line numbers stood still while the text moved. The
    `rows` attribute of the text area already holds the line count, therefore `flex-start`
    gives both children their whole height and the container alone scrolls. See issue #277. */
-.pol-code{display:flex; align-items:flex-start; max-height:440px; overflow:auto; font-size:var(--fs-data); font-stretch:var(--stretch-mono); line-height:1.6}
-.pol-gut{
-  flex:none;
-  padding:var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-4);
-  color:var(--text-tertiary);
-  text-align:right;
-  user-select:none;
-  font-family:var(--font-data);
-}
+.pol-code{display:flex; align-items:flex-start; max-height:min(70vh, 760px); overflow:auto; font-size:var(--fs-data); line-height:1.65}
+.pol-gut{flex:none; padding:var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-4); color:var(--text-tertiary); text-align:right; user-select:none; font-family:var(--font-data); tab-size:2}
 .pol-doc{
-  flex:1;
+  flex:1 0 auto;
   min-width:0;
+  field-sizing:content;
   border:none;
   outline-offset:-2px;
   resize:none;
@@ -1062,148 +957,70 @@ a.btn:focus-visible{outline:none; box-shadow:var(--ring-focus)}
   color:var(--text-body);
   font:inherit;
   font-family:var(--font-data);
+  font-variant-ligatures:none;
   line-height:inherit;
   white-space:pre;
   overflow-y:hidden;
   overflow-x:auto;
+  tab-size:2;
 }
-.pol-doc:focus-visible{outline:none; box-shadow:var(--ring-focus)}
+@supports not (field-sizing:content){
+  .pol-doc{flex:1}
+}
+.pol-doc:focus-visible{outline:none; box-shadow:inset var(--ring-focus)}
 .pol-doc[readonly]{color:var(--text-secondary)}
 .pol-meta{display:flex; gap:var(--sp-2); margin-top:var(--sp-3); flex-wrap:wrap}
+.pol-parse-error{color:var(--status-crit)}
 
-/* The Visual/Text toggle, FR-vacl-1. The selected control takes a neutral surface, not
-   the accent: the push action already holds the one accent use of this view. */
-.seg{
-  display:inline-flex;
-  gap:1px;
-  border:1px solid var(--border-default);
-  border-radius:var(--r-sm);
-  background:var(--border-default);
-}
-.pol-visual .seg,
-.pol-editor .seg{margin-bottom:var(--sp-3)}
-.seg button{
-  font:inherit;
-  font-size:var(--fs-sm);
-  font-weight:var(--fw-medium);
-  padding:var(--sp-1) var(--sp-3);
-  border-radius:0;
-  border:none;
-  background:var(--surface-page);
-  color:var(--text-secondary);
-  cursor:pointer;
-}
-.seg button:hover{color:var(--text-body)}
-.seg button{white-space:nowrap}
-/* The current choice is an inset cell with the body colour. It takes no accent, and it
-   matches the selection of a table row. */
-.seg button[aria-selected="true"],
-.seg button[aria-pressed="true"]{background:var(--surface-inset); color:var(--text-body); box-shadow:inset 0 0 0 1px var(--text-tertiary)}
-.seg button:disabled{color:var(--text-tertiary); cursor:not-allowed}
-.seg button:focus-visible{outline:none; box-shadow:var(--ring-focus)}
-.pol-parse-error{color:var(--crit)}
-
-/* The visual editor's section nav and its Groups, Hosts, Tag owners, and IP sets
-   editors. #316 adds the matrix and the rule list that the Rules row opens. */
+/* The visual editor: the section grid, and one entry card per item of the open section. */
 .pol-visual{margin-top:var(--sp-3)}
 .pol-visual .setrow{
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:var(--sp-3);
-  padding:var(--pad-row);
+  padding:var(--sp-3) var(--sp-4);
+  border:1px solid var(--border-default);
   border-radius:var(--r);
-  background:var(--surface-inset);
+  background:var(--surface-card);
+  overflow-wrap:anywhere;
 }
 .pol-visual .setrow + .setrow{margin-top:var(--sp-2)}
-.pol-visual .name{color:var(--text-secondary)}
+.pol-visual .name{color:var(--text-secondary); min-width:0; overflow-wrap:anywhere}
 .pol-visual .setrow[role="button"]{cursor:pointer}
+.pol-visual .setrow[role="button"]:hover{background:var(--surface-raised)}
 .pol-visual .setrow[role="button"]:focus-visible{outline:none; box-shadow:var(--ring-focus)}
-.pol-visual .setrow.selected{border:1px solid var(--text-tertiary)}
-
-/* The section grid: ten cells with a hairline gutter. The open section reverses its cell
-   and takes no accent, because the accent of this view marks an allowed path. */
-.pol-sections{display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:1px; background:var(--border-default); border:1px solid var(--border-default); margin-bottom:var(--sp-4)}
-.pol-sections .setrow{padding:var(--sp-2) var(--sp-3); background:var(--surface-card); border:none}
+.pol-visual .setrow.selected{border-color:var(--accent-strong); background:var(--accent-soft)}
+.pol-visual .setrow.selected .name{color:var(--text-body); font-weight:var(--fw-semibold)}
+.pol-sections{display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:var(--sp-2); margin-bottom:var(--sp-4)}
 .pol-sections .setrow + .setrow{margin-top:0}
-.pol-sections .setrow:hover{background:var(--surface-raised)}
-.pol-sections .setrow.selected{border:none; background:var(--surface-inset); box-shadow:inset 0 0 0 1px var(--text-tertiary)}
-.pol-sections .setrow.selected .name{color:var(--text-body)}
-@media (max-width:900px){
-  .pol-sections{grid-template-columns:repeat(2, minmax(0,1fr))}
-}
 
 .setlist{margin-top:var(--sp-3); display:flex; flex-direction:column; gap:var(--sp-3)}
-.setentry{
-  border:1px solid var(--border-default);
-  border-radius:var(--r);
-  padding:var(--sp-3);
-  display:flex;
-  flex-direction:column;
-  gap:var(--sp-2);
-}
-.setentry-head{display:flex; align-items:center; gap:var(--sp-2); flex-wrap:wrap}
-.setentry-key{flex:1; min-width:8ch}
-.setentry-value{display:flex; align-items:center; gap:var(--sp-2); flex-wrap:wrap}
-.setentry-address{flex:1; min-width:8ch}
-.setmembers{display:flex; align-items:center; gap:var(--sp-2); flex-wrap:wrap}
-.setmember-remove{
-  background:none;
-  border:none;
-  color:var(--text-tertiary);
-  cursor:pointer;
-  padding:0 0 0 var(--sp-2);
-  font:inherit;
-}
-.setmember-remove:hover{color:var(--text-body)}
+.setentry{border:1px solid var(--border-default); border-radius:var(--r); background:var(--surface-card); padding:var(--sp-4); display:flex; flex-direction:column; gap:var(--sp-3); min-width:0}
+.setentry .field{background:var(--surface-page)}
+.setentry-head,
+.setentry-value,
+.setmembers,
+.setadd{display:flex; align-items:center; gap:var(--sp-2); flex-wrap:wrap; min-width:0}
+.setentry-head > .field,
+.setentry-value > .field{flex:1 1 180px; overflow-wrap:anywhere}
+.setmember-remove{background:none; border:none; border-radius:var(--r-xs); color:var(--text-tertiary); cursor:pointer; padding:0 4px; font:inherit}
+.setmember-remove:hover{color:var(--status-crit)}
 .setmember-remove:focus-visible{outline:none; box-shadow:var(--ring-focus)}
 .setremove-confirm{display:flex; flex-direction:column; gap:var(--sp-2); align-items:flex-start}
-.setadd{display:flex; align-items:center; gap:var(--sp-2); flex-wrap:wrap}
 
-/* The staged summary, above the section nav, per FR-vacl-14. The accent already marks
-   the Push action and an allowed path in the matrix, so the bar takes a neutral surface
-   and no second use of the accent. */
-.diffbar{
-  display:flex;
-  align-items:center;
-  gap:var(--sp-3);
-  padding:var(--pad-row);
-  border-radius:var(--r);
-  background:var(--surface-inset);
-  border:1px solid var(--border-default);
-  margin-bottom:var(--sp-3);
-}
-.diffbar .n{color:var(--text-body); font-weight:600}
-
-/* The reason a control server does not support one section, per FR-vacl-19. The dot
-   carries the warn state; the box stays a neutral surface, per docs/DESIGN.md. */
-.unsup{
-  display:flex;
-  gap:var(--sp-3);
-  align-items:flex-start;
-  padding:var(--pad-row);
-  border-radius:var(--r);
-  background:var(--surface-inset);
-  border:1px solid var(--border-default);
-}
-.unsup .dot{margin-top:5px; flex:none}
-.unsup .note{margin:0}
+/* The staged summary, above the section nav, per FR-vacl-14. */
+.diffbar{display:flex; align-items:center; flex-wrap:wrap; gap:var(--sp-3); padding:var(--pad-row); border-radius:var(--r); background:var(--accent-soft); margin-bottom:var(--sp-3)}
+.diffbar .n{color:var(--text-body); font-weight:var(--fw-semibold)}
 
 /* The two sentences of the push come before the controls, because a warning comes before
    the step that it applies to. */
-.pol-acts{
-  display:flex;
-  align-items:flex-end;
-  justify-content:space-between;
-  gap:var(--sp-4);
-  margin-top:var(--sp-4);
-  flex-wrap:wrap;
-}
+.pol-acts{display:flex; align-items:flex-end; justify-content:space-between; gap:var(--sp-4); margin-top:var(--sp-5); flex-wrap:wrap}
 .pol-acts:empty{display:none}
 .pol-push-note{max-width:62ch}
 .pol-push-note .note{margin:0}
 .pol-push-note .note + .note{margin-top:var(--sp-1)}
-.pol-btns{display:flex; gap:var(--sp-2); flex:none}
+.pol-btns{display:flex; gap:var(--sp-2); flex-wrap:wrap}
 
 .pol-result{margin-top:var(--sp-4)}
 .pol-result:empty{display:none}
@@ -1211,27 +1028,16 @@ a.btn:focus-visible{outline:none; box-shadow:var(--ring-focus)}
 .pol-result .note{margin:var(--sp-2) 0 0}
 .pol-result .pol-btns{margin-top:var(--sp-3)}
 
-/* One error of the validate, with the line number that the control server stated. The
-   message is the text of the control server, therefore it draws in the mono typeface. */
-.pol-errs{
-  margin-top:var(--sp-3);
-  border-radius:var(--r);
-  background:var(--surface-inset);
-  padding:var(--pad-card);
-  display:flex;
-  flex-direction:column;
-  gap:var(--sp-2);
-}
-.pol-err{display:flex; gap:var(--sp-3); font-size:var(--fs-micro)}
-.pol-err-line{flex:none; color:var(--text-tertiary)}
-.pol-err-msg{color:var(--text-body); overflow-wrap:anywhere}
+/* One error of the validate, with the line number that the control server stated. */
+.pol-errs{margin-top:var(--sp-3); border-radius:var(--r); background:var(--surface-inset); padding:var(--sp-3) var(--sp-4); display:flex; flex-direction:column; gap:var(--sp-2)}
+.pol-err{display:flex; gap:var(--sp-3)}
+.pol-err-line{flex:none; color:var(--text-tertiary); font-size:var(--fs-micro)}
+.pol-err-msg{color:var(--text-body); font-size:var(--fs-micro); min-width:0; overflow-wrap:anywhere}
 
-@media (max-width:1040px){
-  .pol-grid{grid-template-columns:1fr}
-}
+/* ---- The path list of a phone --------------------------------------------------------------- */
 
-/* The topology of a phone: a row of source buttons and one row per allowed path. A wider
-   screen draws the picture and hides the list. */
+/* A row of source buttons and one row per allowed path. A wider screen draws the picture
+   and hides the list. */
 .path-wrap{display:none}
 .path-srcs{display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-bottom:var(--sp-3)}
 .path-src{
@@ -1239,28 +1045,22 @@ a.btn:focus-visible{outline:none; box-shadow:var(--ring-focus)}
   align-items:center;
   gap:var(--sp-2);
   min-height:44px;
-  padding:0 var(--sp-3);
+  max-width:100%;
+  padding:0 var(--sp-4);
   border:1px solid var(--border-default);
-  border-radius:var(--r-sm);
+  border-radius:var(--r-pill);
   background:var(--surface-card);
   color:var(--text-body);
   font:inherit;
+  text-align:left;
+  overflow-wrap:anywhere;
   cursor:pointer;
 }
-.path-src[aria-pressed="true"]{background:var(--surface-inset); border-color:var(--text-tertiary)}
+.path-src[aria-pressed="true"]{background:var(--accent-soft); border-color:var(--accent-strong)}
 .path-src:focus-visible{outline:none; box-shadow:var(--ring-focus)}
 .path-rows{list-style:none; margin:0; padding:0; border-top:1px solid var(--border-soft)}
-.path-row{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) 40px minmax(0,1fr);
-  align-items:center;
-  gap:var(--sp-1) var(--sp-3);
-  padding:var(--sp-3) 0;
-  border-bottom:1px solid var(--border-soft);
-}
-.path-end{color:var(--text-body); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-/* The connector is the dotted curve of the brand, drawn straight: a 2 pixel dash, a 6
-   pixel gap, and a 1.4 pixel stroke. */
+.path-row{display:grid; grid-template-columns:minmax(0,1fr) 40px minmax(0,1fr); align-items:center; gap:var(--sp-1) var(--sp-3); padding:var(--sp-3) 0; border-bottom:1px solid var(--border-soft)}
+.path-end{color:var(--text-body); overflow-wrap:anywhere}
 .path-conn{height:1.4px; background:repeating-linear-gradient(to right, var(--edge) 0 2px, transparent 2px 8px)}
 .path-ports{grid-column:1 / -1; color:var(--text-tertiary); font-size:var(--fs-micro)}
 .path-row.sel .path-conn{background:repeating-linear-gradient(to right, var(--edge-active) 0 2px, transparent 2px 8px)}
@@ -1268,273 +1068,286 @@ a.btn:focus-visible{outline:none; box-shadow:var(--ring-focus)}
 .path-row.muted .path-conn{background:repeating-linear-gradient(to right, var(--border-default) 0 2px, transparent 2px 8px)}
 .path-list > .note{margin-top:var(--sp-3)}
 
-/* The phone. Every rule here wins over the rules above it, because it comes last. */
+/* ---- The peers --------------------------------------------------------------------------------- */
+
+/* A value that copies itself on a click. The icon stays quiet until the pointer or the
+   focus reaches the value. */
+.copy{
+  font:inherit;
+  font-family:var(--font-data);
+  font-variant-ligatures:none;
+  font-size:var(--fs-data);
+  letter-spacing:var(--ls-mono);
+  color:inherit;
+  background:transparent;
+  border:0;
+  border-radius:var(--r-xs);
+  padding:1px 5px;
+  margin:0 0 0 -5px;
+  cursor:copy;
+  text-align:left;
+  max-width:calc(100% + 5px);
+  overflow-wrap:anywhere;
+}
+.copy:hover{background:var(--accent-soft); color:var(--accent)}
+.copy:focus-visible{outline:none; box-shadow:var(--ring-focus)}
+.copy-ico{width:14px; height:14px; margin-left:6px; vertical-align:-2px; color:var(--text-tertiary); opacity:.45}
+.copy:hover .copy-ico,
+.copy:focus-visible .copy-ico{color:inherit; opacity:1; outline:none; box-shadow:var(--ring-focus)}
+.copy.copied,
+.copy.copied .copy-ico{color:var(--status-ok); opacity:1}
+.peers-offscreen{position:fixed; left:-9999px; top:0}
+
+.peers-tools{display:flex; flex-wrap:wrap; align-items:center; gap:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-5)}
+.peers-tailnets:empty{display:none}
+
+.peers-self{display:grid; grid-template-columns:repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap:var(--sp-4); margin-bottom:var(--sp-5)}
+.peers-self-card{border:1px solid var(--border-default); border-radius:var(--r-lg); background:var(--surface-card); box-shadow:var(--shadow-card); padding:var(--sp-5); min-width:0; display:flex; flex-direction:column; gap:var(--sp-4)}
+.peers-self-head{display:flex; flex-wrap:wrap; align-items:center; gap:var(--sp-2) var(--sp-3)}
+.peers-self-id{font-size:18px; font-weight:var(--fw-bold); letter-spacing:0; color:var(--text-body); min-width:0; overflow-wrap:anywhere}
+.peers-self-card > .alert{padding:10px 14px}
+.peers-self-card > .note{margin:0}
+
+.meter-words{display:flex; justify-content:space-between; gap:var(--sp-3); margin-bottom:6px; font-size:var(--fs-micro); color:var(--text-secondary)}
+.meter-track{height:6px; border-radius:var(--r-pill); background:var(--surface-inset); overflow:hidden}
+.meter-fill{display:block; height:100%; border-radius:var(--r-pill); background:var(--status-ok)}
+
+/* A description list with the label over its value, so a value takes the whole width. */
+.stack-kv{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:var(--sp-3) var(--sp-4); margin:0}
+.stack-kv > div{grid-column:1 / -1; min-width:0}
+.stack-kv > div.half{grid-column:span 1}
+.stack-kv dt{font-size:var(--fs-label); color:var(--text-tertiary); line-height:1.5}
+.stack-kv dd{margin:0; min-width:0; color:var(--text-body); overflow-wrap:anywhere; display:flex; flex-wrap:wrap; align-items:center; gap:2px var(--sp-4)}
+.stack-kv dd > *{min-width:0}
+.stack-kv.wide{grid-template-columns:repeat(auto-fill, minmax(min(250px, 100%), 1fr))}
+.stack-kv.wide > div{grid-column:auto}
+.peers-login{color:var(--accent); font-size:var(--fs-sm); font-weight:var(--fw-semibold)}
+
+.peers-body{container-type:inline-size}
+.peers-count{color:var(--text-secondary); font-size:var(--fs-sm); margin:0 0 var(--sp-3)}
+.peers-frame{border:1px solid var(--border-default); border-radius:var(--r-lg); overflow-x:auto; background:var(--surface-card); box-shadow:var(--shadow-card)}
+.peers-table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
+.peers-table th,
+.peers-table td{padding:11px var(--sp-2); text-align:left; vertical-align:top; border-bottom:1px solid var(--border-soft)}
+.peers-table th:first-child,
+.peers-table td:first-child{padding-left:var(--sp-5)}
+.peers-table th:last-child,
+.peers-table td:last-child{padding-right:var(--sp-5)}
+.peers-table tbody > tr:last-child > *{border-bottom:none}
+.peers-sort{font:inherit; letter-spacing:inherit; color:inherit; background:none; border:0; border-radius:var(--r-xs); padding:0; cursor:pointer}
+.peers-sort:hover,
+.peers-sort.on{color:var(--text-body)}
+.peers-sort:focus-visible{outline:none; box-shadow:var(--ring-focus)}
+.peers-table tbody tr.peer{cursor:pointer; transition:background var(--dur-1) var(--ease)}
+.peers-table tbody tr.peer:hover{background:var(--surface-raised)}
+.peers-table tbody tr.peer:focus-visible{outline:none; box-shadow:inset var(--ring-focus)}
+.peers-table tbody tr[aria-expanded="true"]{background:var(--accent-soft)}
+.peers-table tbody tr[aria-expanded="true"] > *{border-bottom-color:transparent}
+.peers-table tr.peer-detail > td{background:var(--accent-soft); padding:var(--sp-2) var(--sp-5) var(--sp-5)}
+.peers-table td{font-size:var(--fs-sm)}
+.peers-table tr.off td,
+.peers-table tr.off .peers-strong{color:var(--text-secondary)}
+.peers-name{font-weight:var(--fw-regular); min-width:270px}
+.peers-name-line{display:grid; grid-template-columns:auto minmax(0,max-content) auto; justify-content:start; align-items:center; gap:2px var(--sp-3)}
+.peers-name-line .badge{white-space:nowrap}
+/* The icon of a value inside the table floats beside it and shows under the pointer, so
+   every column keeps its width for text. */
+.peers-table tr.peer .copy{position:relative}
+.peers-table tr.peer .copy-ico{position:absolute; left:100%; top:50%; margin:-7px 0 0 2px; opacity:0}
+.peers-table tr.peer .copy:hover .copy-ico,
+.peers-table tr.peer .copy.copied .copy-ico{opacity:1}
+.peers-fit{white-space:nowrap}
+.peers-strong{font-weight:var(--fw-bold); color:var(--text-body)}
+.peers-sub{margin-left:calc(var(--dot) + var(--sp-3)); color:var(--text-tertiary)}
+.peers-sub .copy{font-size:12.5px}
+.peers-owner{overflow-wrap:anywhere; min-width:150px}
+.peers-owner .badge{margin:2px 6px 0 0}
+.peers-owner > span:first-child{display:block}
+.peers-conn .badge{white-space:nowrap}
+.peers-endpoint{display:block; margin-top:4px; color:var(--text-tertiary); overflow-wrap:anywhere}
+.peers-routes > *{display:block; width:fit-content}
+.peers-routes .copy{margin-top:2px; overflow-wrap:break-word}
+.peers-routes .badge{white-space:nowrap}
+.peers-seen{white-space:nowrap}
+.peers-absent{color:var(--text-tertiary)}
+
+/* A narrow view draws each peer as a card, so the table never scrolls sideways. */
+@container (max-width:1120px){
+  .peers-frame{border:none; background:transparent; box-shadow:none; overflow:visible}
+  .peers-table,
+  .peers-table thead,
+  .peers-table tbody,
+  .peers-table tr,
+  .peers-table th,
+  .peers-table td{display:block}
+  .peers-table thead tr{display:flex; flex-wrap:wrap; gap:var(--sp-2); margin-bottom:var(--sp-3)}
+  .peers-table thead th{padding:5px 12px; border:1px solid var(--border-default); border-radius:var(--r-pill)}
+  .peers-table thead th:first-child{padding-left:12px}
+  .peers-table thead th:not(:has(button)){display:none}
+  .peers-table tr.peer{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(min(210px, 100%), 1fr));
+    gap:var(--sp-3) var(--sp-4);
+    padding:var(--sp-4) var(--sp-5);
+    margin-bottom:var(--sp-3);
+    border:1px solid var(--border-default);
+    border-radius:var(--r-lg);
+    background:var(--surface-card);
+    box-shadow:var(--shadow-card);
+  }
+  .peers-table tr.peer > *,
+  .peers-table tr.peer > :first-child,
+  .peers-table tr.peer > :last-child{padding:0; border:none; min-width:0}
+  .peers-table tr.peer > .peers-name{grid-column:1 / -1}
+  .peers-table tr.peer .copy-ico{display:none}
+  .peers-table tr.peer > td::before{content:attr(data-label); display:block; margin-bottom:2px; font-size:var(--fs-label); color:var(--text-tertiary)}
+  .peers-table tr[aria-expanded="true"]{margin-bottom:0; border-bottom:none; border-radius:var(--r-lg) var(--r-lg) 0 0}
+  .peers-table tr.peer-detail{margin-bottom:var(--sp-3); border:1px solid var(--border-default); border-top:none; border-radius:0 0 var(--r-lg) var(--r-lg); overflow:hidden; background:var(--surface-card)}
+}
+
+/* ---- The screen sizes ----------------------------------------------------------------------------- */
+
+/* A wide screen sets the reachability matrix and the rule list side by side, because the
+   matrix is narrow and the rules beside it say what each filled square allows. */
+@media (min-width:1200px){
+  #view-access:not([hidden]){display:grid; grid-template-columns:fit-content(50%) minmax(0,1fr); gap:var(--sp-5); align-items:start}
+  /* The squares set the width of the matrix card, and the sentence over them wraps in it. */
+  #view-access > .ac-matrix > .note{width:0; min-width:100%}
+  #view-access > *{grid-column:1 / -1; margin:0}
+  #view-access > .card + .card{margin-top:0}
+  #view-access > .ac-matrix{grid-column:1}
+  #view-access > .ac-rules{grid-column:2}
+  #view-access:not(:has(> .ac-rules)) > .ac-matrix{grid-column:1 / -1}
+}
+
+@media (max-width:1180px){
+  .settings-grid{columns:1}
+  .lower,
+  .pol-grid,
+  .ns-grid.ns-open{grid-template-columns:minmax(0,1fr)}
+}
+
+/* A tablet keeps the columns of the phone tier and the tablet tier of the board. */
+@media (max-width:900px){
+  .board .opt{display:none}
+}
+
+/* A narrow screen keeps the brand in a bar at the top and moves the views into a fixed
+   index at the bottom, so every view is one press away and none hides behind a sideways
+   scroll. */
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr); grid-template-rows:auto 1fr; align-content:start}
+  .nav{
+    position:static;
+    height:auto;
+    overflow:visible;
+    border-right:none;
+    border-bottom:1px solid var(--border-default);
+    flex-direction:row;
+    align-items:center;
+    gap:var(--sp-4);
+    padding:var(--sp-3) var(--sp-4);
+  }
+  .brand{padding:0}
+  .nav-index{
+    position:fixed;
+    inset:auto 0 0 0;
+    z-index:5;
+    display:grid;
+    grid-template-columns:repeat(7, minmax(0,1fr));
+    gap:2px;
+    padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+    background:var(--surface-card);
+    border-top:1px solid var(--border-default);
+  }
+  .nav-link{flex-direction:column; justify-content:center; gap:2px; min-height:54px; padding:var(--sp-1) 0; font-size:12px; letter-spacing:-.02em; text-align:center}
+  .nav-link .key{display:none}
+  .nav-foot{margin:0 0 0 auto; flex-direction:row; align-items:center; gap:var(--sp-4)}
+  .title-block{display:flex; padding:0; background:none}
+  .title-block div{padding:0 0 0 var(--sp-4)}
+  .theme-switch button{padding:7px 10px}
+  .theme-switch button span:not(.ico){position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%)}
+  .main{padding:var(--sp-5) var(--sp-4) calc(var(--sp-8) + 70px + env(safe-area-inset-bottom))}
+}
+
+/* A phone keeps the narrow columns of the board, and it reads the topology as its text
+   equivalent, because the picture is too small to read there. */
 @media (max-width:600px){
-  .head{flex-direction:column; align-items:flex-start; gap:var(--sp-1)}
+  .board .mid{display:none}
+  .title-block{display:none}
+  /* Seven names do not fit, so a phone shows the icons. The heading names the view. */
+  .nav-text{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%)}
+  .nav-link .ico{width:24px; height:24px}
+  .ac-mtx tbody th{max-width:15ch}
+  .verdict-counts{grid-template-columns:repeat(2, minmax(0,1fr)); gap:var(--sp-3)}
+  .count{padding:var(--sp-3) var(--sp-4)}
+  .board-frame .board th,
+  .board-frame .board td{padding:var(--sp-3) var(--sp-2)}
+  .board th:first-child,
+  .board td:first-child{padding-left:var(--sp-3)}
   .board-detail{display:table-row}
-  /* access.js sets the square size inline, so a phone raises it to the size of a thumb
-     with max() rather than with a second value of the property. */
-  .ac-square{width:max(var(--ac-square), 40px); height:max(var(--ac-square), 40px)}
-  .frame-link{display:inline-flex; align-items:center; min-height:44px; padding:0 var(--sp-2); margin:0 calc(var(--sp-2) * -1)}
+  /* The first three columns carry a badge each, so a badge wraps rather than scrolls. */
+  .board .badge{white-space:normal}
+  .board .badge{padding:2px 7px; gap:5px}
+
+  .card,
+  .frame{padding-left:var(--sp-4); padding-right:var(--sp-4)}
+  .card > .label:first-child,
+  .card > .card-head:first-child,
+  .frame-head{margin-left:calc(var(--sp-4) * -1); margin-right:calc(var(--sp-4) * -1); padding-left:var(--sp-4); padding-right:var(--sp-4)}
+  .ns-list,
+  .pol-listframe,
+  .log-frame{padding-left:0; padding-right:0}
+  .ns-list .frame-head,
+  .pol-listframe .frame-head,
+  .log-frame .frame-head{margin-left:0; margin-right:0}
+  .frame-tools{margin-left:0; flex-basis:100%}
+
+  /* Activity: the time and the event share the first line. */
+  .log thead{display:none}
+  .log, .log tbody{display:block}
+  .log tr.day,
+  .log tr.day th{display:block}
+  .log tr.day th{padding-left:var(--sp-4)}
+  .log tr.log-row{display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:var(--sp-3); row-gap:2px; padding:var(--sp-3) var(--sp-4); border-bottom:1px solid var(--border-soft)}
+  .log tr.log-row td{padding:0; border:none}
+  .log tr.log-row .n:empty{display:none}
+  .log tr.log-row .m{grid-column:1 / -1}
 
   /* The topology */
   #view-overview .flow-wrap,
   #view-access .flow-wrap{display:none}
   .path-wrap{display:block}
 
-  /* A control that a thumb presses is 44 pixels high. */
+  /* A control that a thumb presses is 44 pixels high. access.js sets the square size
+     inline, so a phone raises it with max() rather than with a second value. */
+  .ac-square{width:max(var(--ac-square), 40px); height:max(var(--ac-square), 40px)}
   .btn,
   .seg button,
-  .ns-sm,
-  .pol-sections .setrow{min-height:44px}
-  .ns-sm{padding:var(--pad-btn)}
+  .field{min-height:44px}
+  .frame-link{display:inline-flex; align-items:center; min-height:44px}
+  .seg{display:flex}
+  .seg button{flex:1 1 auto}
 
-  /* A frame head that holds tools puts the tools on a line of their own, at the content
-     edge. */
-  .frame-tools{margin-left:0; flex-basis:100%; padding-bottom:var(--sp-2)}
-  .frame-head .btn,
-  .frame-head .seg button{min-height:44px}
-  .frame-head:has(.frame-tools){padding-top:var(--sp-2)}
-  .seg{display:flex; flex-wrap:wrap}
-  .seg button{flex:1}
-
-  /* Activity: the time and the event share the first line. */
-  .log tr.log-row{grid-template-columns:auto minmax(0,1fr); padding:var(--sp-2) var(--sp-4)}
-  .log tr.day th{padding-left:var(--sp-4)}
-
-  /* Namespaces: the panel lists every peer and event in the page scroll. */
-  .ns-peers-list,
-  .ns-events{max-height:none}
-  .ns-event{grid-template-columns:auto minmax(0,1fr)}
-
-  /* Settings: the label sits over its value, so a path stays on one line. */
+  /* Settings: the label sits over its value. */
   .kv,
-  .nsrow{grid-template-columns:1fr; gap:2px}
+  .nsrow,
+  .ns-pair{grid-template-columns:minmax(0,1fr); gap:2px}
   .nsrow .err{grid-column:1}
 
-  /* Access: a rule row holds the path on its first line and the port field and the
-     delete action on the second. */
-  .ac-rule{grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr) auto; grid-auto-flow:row}
-  .ac-rule > :nth-child(n+4){grid-column:1 / -1; justify-self:start}
-  .ac-rule > .ac-portfield{grid-column:1 / 4; width:100%}
-  .ac-rule > .ac-del,
-  .ac-rule > .btn:last-child{grid-column:4; justify-self:end}
-  /* The kind of a policy rule sits at the end of the path line, so a rule takes two lines:
-     the path, then the port field and the delete action. */
-  .ac-rule > .chip{grid-column:4; grid-row:1; justify-self:end}
-  .ac-rule > .chip ~ .chip{grid-column:1 / -1; grid-row:auto; justify-self:start}
-
-  /* Policy: the document scrolls inside its box, and nested frames lose their border. */
+  .ac-stagedrow{grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr)}
+  .ac-stagedverb,
+  .ac-stagedrow .ac-noports{grid-column:1 / -1}
+  .ac-portfield{flex-basis:100%}
   .pol-code{max-height:60vh}
-  .pol-region .card{border:none; padding:0; background:transparent}
-  .pol-region .card > .label:first-child,
-  .pol-region .card > .card-head:first-child{margin:0 0 var(--sp-3); padding:var(--sp-2) 0; background:transparent}
   .pol-btns{flex:1 1 100%}
   .pol-btns .btn{flex:1}
 
-  /* A dialog takes the whole screen, and its actions stay at the foot of the screen. */
   /* A dialog is a sheet at the foot of the screen, as tall as its content and never
      taller than the screen. */
   .ns-scrim,
   .ac-scrim{padding:0; align-items:flex-end}
   .ns-dialog,
-  .ac-dialog{max-width:none; max-height:100dvh; border:none; border-top:1px solid var(--border-default); border-radius:0; padding:0 var(--sp-5); display:flex; flex-direction:column}
-  .ns-dialog .ns-dialog-acts,
-  .ac-dialog .ns-dialog-acts{position:sticky; bottom:0; margin:var(--sp-4) calc(var(--sp-5) * -1) 0; padding:var(--sp-3) var(--sp-5) calc(var(--sp-3) + env(safe-area-inset-bottom)); background:var(--surface-card)}
+  .ac-dialog{max-width:none; max-height:100dvh; border-radius:var(--r-xl) var(--r-xl) 0 0; border-width:1px 0 0; padding:var(--sp-5)}
   .ns-dialog-acts .btn{flex:1}
 }
-
-/* A section label inside a frame is a sentence-case title, not an uppercase label. The
-   one uppercase text of the console is the column head of a table. */
-.ns-section,
-.ns-notice > .label,
-.ac-flow-cap .label,
-.ns-field > .label{
-  text-transform:none;
-  letter-spacing:0;
-  font-size:var(--fs-sm);
-  font-weight:var(--fw-semibold);
-  color:var(--text-secondary);
-}
-.ac-flow-cap .label{font-weight:var(--fw-regular)}
-
-/* Namespaces: the state cell holds one gap between the dot and the word. */
-/* The credential reason names keys and variables, so it is set as the daemon wrote it. */
-.ns-reason{font-family:var(--font-data); font-stretch:var(--stretch-mono); font-size:var(--fs-micro); color:var(--text-body); padding:var(--sp-3); background:var(--surface-inset)}
-.ns-event-text.mono{font-size:var(--fs-data); color:var(--text-body)}
-
-/* A removal command breaks at a space only, so a line break never splits a flag or a
-   path. A wrapped line of a command indents two columns under its first line. */
-.ns-cmds > span{white-space:normal; padding-left:2ch; text-indent:-2ch}
-.ns-arg{white-space:nowrap}
-
-/* The checkbox of the add flow takes the palette and a row that a thumb presses. */
-.ns-check{min-height:44px}
-.ns-check input{
-  appearance:none;
-  width:18px;
-  height:18px;
-  flex:none;
-  margin:0;
-  border:1px solid var(--text-tertiary);
-  background:var(--surface-inset);
-  display:grid;
-  place-items:center;
-  cursor:pointer;
-}
-.ns-check input:checked::after{content:""; width:10px; height:10px; background:var(--text-body)}
-.ns-check input:focus-visible{outline:none; box-shadow:var(--ring-focus)}
-
-/* The port field holds the ports of the rule, or states "all ports" when it is empty, so
-   a row with a field states its ports once, in the field. */
-.ac-rule:has(.ac-portfield) .ac-noports,
-.ac-rule:has(.ac-portfield) .ac-ports{display:none}
-
-/* Policy: the etag breaks inside its chip, and a tab takes two columns. */
-/* The etag spans the width of the document, so its edges meet the edges of the editor. */
-.pol-meta .chip{display:block; width:100%; overflow-wrap:anywhere}
-.pol-doc,
-.pol-gut{tab-size:2}
-
-/* A wide screen sets the reachability matrix and the rule list side by side, because the
-   matrix is narrow and the rules beside it say what each filled square allows. */
-@media (min-width:1200px){
-  #view-access{display:grid; grid-template-columns:max-content minmax(0,1fr); gap:var(--sp-5); align-items:start}
-  #view-access > *{grid-column:1 / -1; margin-top:0}
-  #view-access > .ac-matrix{grid-column:1}
-  #view-access > .ac-rules{grid-column:2}
-  #view-access:not(:has(> .ac-rules)) > .ac-matrix{grid-column:1 / -1}
-}
-
-/* Before a selection, the tailnet list and the document frame share one height. */
-.pol-grid:has(.pol-idle){align-items:stretch}
-
-/* ------------------------------------------------------------------------------------
-   Fork additions: the theme switch, a calmer board in the light palette, and the peers
-   view.
-   ------------------------------------------------------------------------------------ */
-
-.theme-toggle{margin-top:var(--sp-3); width:100%; text-align:left; color:var(--text-secondary)}
-
-/* The split-flap line across each board cell reads as noise on a light surface. */
-:root[data-theme="light"] .board tbody th,
-:root[data-theme="light"] .board tbody td{background-image:none}
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]) .board tbody th,
-  :root:not([data-theme="dark"]) .board tbody td{background-image:none}
-}
-
-/* A value that copies itself on a click: it looks like text, and the hover shows that it
-   is a control. */
-.copy{
-  font:inherit;
-  font-family:var(--font-data);
-  font-size:var(--fs-data);
-  font-stretch:var(--stretch-mono);
-  color:inherit;
-  background:transparent;
-  border:0;
-  border-bottom:1px dotted var(--border-default);
-  padding:1px 2px;
-  margin:0;
-  cursor:copy;
-  text-align:left;
-  display:inline-flex;
-  align-items:baseline;
-  gap:var(--sp-2);
-  max-width:100%;
-}
-.copy:hover{background:var(--surface-inset); border-bottom-color:var(--accent)}
-.copy:focus-visible{outline:none; box-shadow:var(--ring-focus)}
-.copy .copy-value{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.copy.copied{border-bottom-color:var(--accent)}
-.copy-flag{font-family:var(--font-body); font-size:var(--fs-micro); color:var(--accent); font-weight:var(--fw-semibold)}
-.peers-offscreen{position:fixed; left:-9999px; top:0}
-
-.peers-tools{display:flex; flex-wrap:wrap; align-items:center; gap:var(--sp-3); margin-bottom:var(--sp-4)}
-.peers-search{min-width:min(420px, 100%); flex:1 1 320px; font-size:var(--fs-body)}
-.peers-check{display:inline-flex; align-items:center; gap:var(--sp-2); color:var(--text-secondary); cursor:pointer}
-.peers-check input{width:18px; height:18px; accent-color:var(--accent)}
-.peers-hint{color:var(--text-tertiary); font-size:var(--fs-sm); flex-basis:100%}
-
-.peers-self{display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:var(--sp-3); margin-bottom:var(--sp-4)}
-.peers-self-card{border:1px solid var(--border-default); background:var(--surface-card); padding:var(--sp-3) var(--sp-4)}
-.peers-self-head{display:flex; flex-wrap:wrap; align-items:baseline; gap:var(--sp-3); margin-bottom:var(--sp-2)}
-.peers-self-id{font-size:var(--fs-h3); font-weight:var(--fw-semibold); color:var(--text-body)}
-.peers-self-alias,
-.peers-self-count{color:var(--text-secondary); font-size:var(--fs-sm)}
-.peers-self-count{margin-left:auto}
-.peers-warn{margin:var(--sp-2) 0 0; color:var(--status-warn); font-size:var(--fs-sm)}
-
-.peers-kv{display:grid; grid-template-columns:max-content minmax(0,1fr); column-gap:var(--sp-4); row-gap:var(--sp-1); margin:0}
-.peers-kv dt{color:var(--text-tertiary); font-size:var(--fs-sm)}
-.peers-kv dd{margin:0; display:flex; flex-wrap:wrap; gap:var(--sp-1) var(--sp-3); min-width:0}
-.peers-kv.wide{grid-template-columns:max-content minmax(0,1fr) max-content minmax(0,1fr)}
-@media (max-width: 900px){
-  .peers-kv.wide{grid-template-columns:max-content minmax(0,1fr)}
-}
-
-.peers-count{color:var(--text-secondary); margin:0 0 var(--sp-2)}
-.peers-frame{border:1px solid var(--border-default); overflow-x:auto; background:var(--surface-card)}
-.peers-table{width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums}
-.peers-table th,
-.peers-table td{padding:var(--sp-2) var(--sp-3); text-align:left; vertical-align:top; border-bottom:1px solid var(--border-soft)}
-.peers-table thead th{
-  position:sticky; top:0; z-index:1;
-  background:var(--surface-raised);
-  font-size:var(--fs-label);
-  font-weight:var(--fw-medium);
-  letter-spacing:var(--ls-label);
-  text-transform:uppercase;
-  color:var(--text-tertiary);
-  white-space:nowrap;
-}
-.peers-sort{font:inherit; letter-spacing:inherit; text-transform:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer}
-.peers-sort:hover,
-.peers-sort.on{color:var(--text-body)}
-.peers-sort:focus-visible{outline:none; box-shadow:var(--ring-focus)}
-.peers-table tbody tr.peer{cursor:pointer}
-.peers-table tbody tr.peer:hover > *{background:var(--surface-raised)}
-.peers-table tbody tr.peer:focus-visible{outline:none; box-shadow:inset var(--ring-focus)}
-.peers-table tbody tr[aria-expanded="true"] > *{background:var(--surface-inset); border-bottom-color:transparent}
-.peers-table tbody tr.off{color:var(--text-secondary)}
-.peers-table tbody tr.off .peers-strong{color:var(--text-secondary)}
-.peers-name{font-weight:var(--fw-regular); min-width:220px}
-.peers-name-line{display:flex; align-items:center; gap:var(--sp-2)}
-.peers-strong{font-weight:var(--fw-semibold); color:var(--text-body)}
-.peers-sub{margin:2px 0 0 calc(var(--dot) + var(--sp-2)); color:var(--text-secondary)}
-.dot.dim{opacity:.55}
-.peers-conn{white-space:nowrap}
-.peers-conn.direct{color:var(--status-ok)}
-.peers-conn.relay{color:var(--status-warn)}
-.peers-conn.offline,
-.peers-conn.idle{color:var(--text-tertiary)}
-.peers-routes{display:flex; flex-wrap:wrap; gap:var(--sp-1) var(--sp-2); align-items:baseline}
-.peers-table td.peers-routes{display:table-cell}
-.peers-routes > *{margin-right:var(--sp-2)}
-.peers-num,
-.peers-seen{white-space:nowrap}
-.peers-owner{max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.peers-absent{color:var(--text-tertiary)}
-.peers-badge{
-  display:inline-block; padding:0 var(--sp-2);
-  border:1px solid var(--border-default); border-radius:var(--r-pill);
-  font-size:var(--fs-micro); color:var(--text-secondary); white-space:nowrap;
-}
-.peers-badge.accent{border-color:var(--accent); color:var(--accent)}
-.peers-badge.crit{border-color:var(--status-crit); color:var(--status-crit)}
-.peers-table tr.peer-detail > td{background:var(--surface-inset); padding:var(--sp-3) var(--sp-4) var(--sp-4)}
-.peers-state-warn{color:var(--status-warn); font-weight:var(--fw-semibold)}
-.peers-login{color:var(--accent); font-weight:var(--fw-semibold)}
-.peers-tailnets:empty{display:none}
-.peers-name{min-width:0}
-/* The second line of a peer, its short name, stays narrow, so the table fits a laptop
-   screen without a horizontal scroll. */
-.peers-sub .copy{font-size:var(--fs-micro); font-stretch:75%; color:var(--text-secondary)}
-.peers-table td,
-.peers-table th{padding-left:var(--sp-2); padding-right:var(--sp-2)}
-.peers-table td:first-child,
-.peers-table th:first-child{padding-left:var(--sp-3)}
-/* The topology draws fixed boxes, so its text keeps the upstream size and width. */
-.node text.n{font-size:13px; font-stretch:75%}
-.node text.s{font-size:12px; font-stretch:75%}

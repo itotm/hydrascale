@@ -1,39 +1,28 @@
 :root{
-  --sans:'Barlow Semi Condensed', 'Arial Narrow', system-ui, sans-serif; /* @kind font */
-  --mono:'Martian Mono', ui-monospace, Menlo, monospace; /* @kind font */
+  --sans:'Inter', system-ui, sans-serif; /* @kind font */
+  --mono:'JetBrains Mono', ui-monospace, Menlo, monospace; /* @kind font */
   --font-display:var(--sans);
   --font-body:var(--sans);
   --font-data:var(--mono);
 
-  /* Fork: every size is about 1.15 times the upstream size, and the mono is wider (87.5%
-     instead of 75%), for a console that reads well at a normal distance. */
-  /* A work area sets two sizes: the value size and the label size. Rank comes from
-     weight, case, and rule, not from a third size. */
-  --fs-display:42px;
-  --fs-h1:30px;
-  --fs-h2:22px;
-  --fs-h3:19px;
-  --fs-lead:18px;
-  --fs-body:16px;
-  --fs-sm:15px;
-  --fs-data:14.5px;
-  --fs-micro:13.5px;
-  --fs-label:13.5px; /* uppercase column head, in the sans */
+  --fs-h1:26px;
+  --fs-h2:20px;
+  --fs-h3:17px;
+  --fs-stat:26px;    /* the number of a stat tile */
+  --fs-body:15px;
+  --fs-sm:14px;
+  --fs-data:13.5px;
+  --fs-micro:13px;
+  --fs-label:12.5px; /* a column head and a field name */
 
-  --ls-display:-.01em;
-  --ls-h1:-.005em;
-  --ls-h2:0em;
+  --ls-h1:-.015em;
+  --ls-h2:-.005em;
   --ls-body:0em;
-  --ls-label:.08em;  /* uppercase column heads only */
+  --ls-label:0em;
   --ls-mono:0em;
 
-  /* The mono is narrow, so that a fixed cell holds a long identifier, as a flap does. */
-  --stretch-mono:87.5%; /* @kind other */
-
-  --lh-display:1.02; /* @kind other */
-  --lh-head:1.12;    /* @kind other */
-  --lh-body:1.5;     /* @kind other */
-  --lh-data:1.35;    /* @kind other */
+  --lh-head:1.2;     /* @kind other */
+  --lh-body:1.55;    /* @kind other */
 
   --fw-regular:400;  /* @kind font */
   --fw-medium:500;   /* @kind font */

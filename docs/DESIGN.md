@@ -1,5 +1,9 @@
 # The Hydrascale design
 
+> **Fork.** This document states the upstream brand. The console of this fork has its own
+> look: `CLAUDE.md` states the rules that replace this document, and the token files under
+> `internal/ui/static/brand/tokens/` hold the values. The terminal interface is unchanged.
+
 This document states the brand of the Hydrascale console. It is written for a contributor
 who has never seen the brand package. Read it before you change a file under
 `internal/ui/static/`.
