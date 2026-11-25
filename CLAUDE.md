@@ -7,7 +7,7 @@ for one setup. The rules below are the upstream rules, with these exceptions:
   switch, and a peers view (internal/ui/static/peers.js).
 - The console has its own look, and these rules replace the visual rules of
   `docs/DESIGN.md` and `.claude/rules/console-brand.md`: rounded cards on a neutral page,
-  one blue accent, the typefaces Inter and JetBrains Mono, and a state as a soft badge with
+  one ocean blue accent, the typefaces Inter and JetBrains Mono, and a state as a soft badge with
   a dot and a lowercase word. The accent also marks the current navigation entry and the
   current selection. The mark is `brand/mark.svg`. The rules on wording, requests, secrets,
   motion, and denied paths still apply.

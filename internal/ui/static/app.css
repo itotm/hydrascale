@@ -320,7 +320,7 @@ h2{
   line-height:1.4;
   padding:var(--pad-btn-sm);
   border-radius:var(--r-sm);
-  border:1px solid var(--border-default);
+  border:1px solid var(--border-control);
   background:var(--surface-card);
   color:var(--text-body);
   cursor:pointer;
@@ -347,13 +347,13 @@ a.btn{display:inline-block; text-decoration:none}
   max-width:100%;
   padding:8px 12px;
   border-radius:var(--r-sm);
-  border:1px solid var(--border-default);
+  border:1px solid var(--border-control);
   background:var(--surface-page);
   color:var(--text-body);
   /* A browser with field-sizing grows a field with its text, so a long value shows whole. */
   field-sizing:content;
 }
-.field:hover{border-color:var(--text-tertiary)}
+.field:hover{border-color:var(--text-secondary)}
 .field::placeholder{color:var(--text-tertiary); opacity:1}
 .field[aria-invalid="true"]{border-color:var(--status-crit)}
 .field:read-only:not(select){color:var(--text-secondary)}
@@ -394,7 +394,7 @@ select.field{
 }
 .seg button:hover{color:var(--text-body)}
 .seg button[aria-selected="true"],
-.seg button[aria-pressed="true"]{background:var(--surface-card); color:var(--text-body); box-shadow:var(--shadow-card)}
+.seg button[aria-pressed="true"]{background:var(--surface-card); color:var(--accent); font-weight:var(--fw-semibold); box-shadow:var(--shadow-card)}
 .seg button:disabled{color:var(--text-tertiary); cursor:not-allowed}
 .pol-visual .seg,
 .pol-editor .seg{margin-bottom:var(--sp-3)}
@@ -463,7 +463,7 @@ select.field{
 .verdict-text.crit{background:var(--crit-soft)}
 .verdict-text .dot{width:10px; height:10px; margin-right:var(--sp-3); vertical-align:.05em}
 .verdict-fault{font-size:16px; font-weight:var(--fw-semibold); margin-left:var(--sp-2)}
-.verdict-counts{margin:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:var(--sp-4)}
+.verdict-counts{margin:0; display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:var(--sp-4)}
 .count{
   display:flex;
   flex-direction:column-reverse;
@@ -846,8 +846,8 @@ svg.flow{max-width:100%; height:auto; display:block; overflow:visible; margin:0 
   height:var(--ac-square);
   padding:0;
   border-radius:var(--r-xs);
-  border:1px solid var(--border-default);
-  background:var(--surface-inset);
+  border:1px solid var(--border-control);
+  background:var(--surface-page);
   cursor:pointer;
   transition:background var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
 }
@@ -911,7 +911,7 @@ svg.flow{max-width:100%; height:auto; display:block; overflow:visible; margin:0 
 .pol-row:last-child{border-bottom:none}
 .pol-row:hover{background:var(--surface-raised)}
 .pol-row[aria-selected="true"]{background:var(--accent-soft); box-shadow:inset 3px 0 0 var(--accent-strong)}
-.pol-row:focus-visible{outline:none; box-shadow:inset var(--ring-focus)}
+.pol-row:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
 .pol-id{color:var(--text-body); font-weight:var(--fw-bold); font-size:var(--fs-sm); overflow-wrap:anywhere}
 .pol-state{justify-self:start}
 .pol-row .pol-state{grid-column:1 / -1}
@@ -967,7 +967,7 @@ svg.flow{max-width:100%; height:auto; display:block; overflow:visible; margin:0 
 @supports not (field-sizing:content){
   .pol-doc{flex:1}
 }
-.pol-doc:focus-visible{outline:none; box-shadow:inset var(--ring-focus)}
+.pol-doc:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
 .pol-doc[readonly]{color:var(--text-secondary)}
 .pol-meta{display:flex; gap:var(--sp-2); margin-top:var(--sp-3); flex-wrap:wrap}
 .pol-parse-error{color:var(--status-crit)}
@@ -1140,7 +1140,7 @@ svg.flow{max-width:100%; height:auto; display:block; overflow:visible; margin:0 
 .peers-sort:focus-visible{outline:none; box-shadow:var(--ring-focus)}
 .peers-table tbody tr.peer{cursor:pointer; transition:background var(--dur-1) var(--ease)}
 .peers-table tbody tr.peer:hover{background:var(--surface-raised)}
-.peers-table tbody tr.peer:focus-visible{outline:none; box-shadow:inset var(--ring-focus)}
+.peers-table tbody tr.peer:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
 .peers-table tbody tr[aria-expanded="true"]{background:var(--accent-soft)}
 .peers-table tbody tr[aria-expanded="true"] > *{border-bottom-color:transparent}
 .peers-table tr.peer-detail > td{background:var(--accent-soft); padding:var(--sp-2) var(--sp-5) var(--sp-5)}
@@ -1221,6 +1221,7 @@ svg.flow{max-width:100%; height:auto; display:block; overflow:visible; margin:0 
 }
 
 @media (max-width:1180px){
+  .verdict-counts{grid-template-columns:repeat(3, minmax(0,1fr))}
   .settings-grid{columns:1}
   .lower,
   .pol-grid,

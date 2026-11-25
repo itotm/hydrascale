@@ -1,4 +1,4 @@
-/* The palette of the fork: cool neutral surfaces, one blue accent, three states.
+/* The palette of the fork: cool neutral surfaces, one ocean blue accent, three states.
    The dark palette is the default, and a light palette below follows
    prefers-color-scheme, or the theme switch of the navigation (html[data-theme]).
 
@@ -18,9 +18,9 @@
   --tx:#e9edf4;
   --mu:#a8b3c5;
   --dim:#94a0b4;
-  --brand:#6aa5ff;
-  --brand-strong:#8dbbff;
-  --brand-ink:#06132b;
+  --brand:#4fc0e8;
+  --brand-strong:#7ed3f2;
+  --brand-ink:#04202c;
   --ok:#4ade93;
   --warn:#f5b94a;
   --crit:#ff8780;
@@ -29,6 +29,7 @@
   --crit-soft:#391a1c;
   --quiet-soft:#222c3d;
   --edge:#6b7a92;
+  --control:#6b7a92;
   --brand-soft:color-mix(in srgb, var(--brand) 16%, transparent);
   --scrim:color-mix(in srgb, #03060c 70%, transparent);
 
@@ -39,6 +40,7 @@
   --surface-inset:var(--s3);
   --border-default:var(--line);
   --border-soft:var(--line-soft);
+  --border-control:var(--control);  /* the edge of a control: 3:1 or more */
   --text-body:var(--tx);
   --text-secondary:var(--mu);
   --text-tertiary:var(--dim);
@@ -65,8 +67,8 @@
     --tx:#101828;
     --mu:#475467;
     --dim:#586375;
-    --brand:#1d5fd6;
-    --brand-strong:#174cae;
+    --brand:#0a6a8f;
+    --brand-strong:#075472;
     --brand-ink:#ffffff;
     --ok:#08703f;
     --warn:#8a4d06;
@@ -76,6 +78,7 @@
     --crit-soft:#fde8e8;
     --quiet-soft:#eceff3;
     --edge:#7b8798;
+    --control:#7f8a9c;
     --brand-soft:color-mix(in srgb, var(--brand) 10%, transparent);
     --scrim:color-mix(in srgb, #0b1324 45%, transparent);
   }
@@ -91,8 +94,8 @@
   --tx:#101828;
   --mu:#475467;
   --dim:#586375;
-  --brand:#1d5fd6;
-  --brand-strong:#174cae;
+  --brand:#0a6a8f;
+  --brand-strong:#075472;
   --brand-ink:#ffffff;
   --ok:#08703f;
   --warn:#8a4d06;
@@ -102,6 +105,7 @@
   --crit-soft:#fde8e8;
   --quiet-soft:#eceff3;
   --edge:#7b8798;
+  --control:#7f8a9c;
   --brand-soft:color-mix(in srgb, var(--brand) 10%, transparent);
   --scrim:color-mix(in srgb, #0b1324 45%, transparent);
 }

@@ -1,25 +1,22 @@
 /* tokens.css holds nothing that the brand does not already declare. It restates the
-   values that brand/tokens/colors.css and brand/tokens/elevation.css build with the
-   color-mix function, because a browser that reads no color-mix function drops the value
+   values that brand/tokens/colors.css builds with the color-mix
+   function, because a browser that reads no color-mix function drops the value
    where the console reads it and the element loses its background or its ring. A custom
    property accepts any token sequence, so a second declaration in the same rule does not
    act as a fallback. The @supports rule is the one construction that works. */
 @supports not (color: color-mix(in srgb, #ffffff 50%, transparent)){
   :root{
-    --brand-soft:rgba(106,165,255,.16);
+    --brand-soft:rgba(79,192,232,.16);
     --scrim:rgba(3,6,12,.7);
-    --ring-focus:0 0 0 3px rgba(106,165,255,.45);
   }
   @media (prefers-color-scheme: light){
     :root:not([data-theme="dark"]){
-      --brand-soft:rgba(29,95,214,.1);
+      --brand-soft:rgba(10,106,143,.1);
       --scrim:rgba(11,19,36,.45);
-      --ring-focus:0 0 0 3px rgba(29,95,214,.45);
     }
   }
   :root[data-theme="light"]{
-    --brand-soft:rgba(29,95,214,.1);
+    --brand-soft:rgba(10,106,143,.1);
     --scrim:rgba(11,19,36,.45);
-    --ring-focus:0 0 0 3px rgba(29,95,214,.45);
   }
 }

@@ -2,7 +2,8 @@
 :root{
   --shadow-card:0 1px 2px rgba(0,0,0,.35);
   --shadow-pop:0 24px 60px -16px rgba(0,0,0,.7);
-  --ring-focus:0 0 0 3px color-mix(in srgb, var(--brand) 45%, transparent);
+  /* The focus ring is the full accent, set off from the control by a gap in the card colour. */
+  --ring-focus:0 0 0 2px var(--s1), 0 0 0 4px var(--brand);
 }
 @media (prefers-color-scheme: light){
   :root:not([data-theme="dark"]){--shadow-card:0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.07); --shadow-pop:0 24px 60px -16px rgba(16,24,40,.3)}
