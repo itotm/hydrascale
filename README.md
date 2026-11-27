@@ -36,6 +36,10 @@ well, together with the changes below.
   retried; host access added by a reload did nothing until a restart; a removed tailnet
   could keep its host names; a subnet route that two tailnets accept flapped between them;
   a route table that did not exist yet for IPv6 stopped the IPv4 route sync.
+  With `access.mode: enforce`, a namespace could not reach a DNS upstream on the local
+  network (for example a LAN resolver copied from the host), so tailscaled reported "Tailscale
+  can't reach the configured DNS servers": port 53 to the upstreams of the namespace
+  `resolv.conf` is now always allowed.
 - The fork publishes no documentation site. Its two new keys are described in
   [docs/site/reference/configuration.md](docs/site/reference/configuration.md) and
   [docs/site/security/console.md](docs/site/security/console.md).

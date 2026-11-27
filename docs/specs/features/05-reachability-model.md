@@ -86,6 +86,11 @@ default is deny.
   without a rule.
 - **FR-access-14** — The daemon allows a namespace to reach the DNS forwarder bind
   address without a rule, because DNS is how the product works.
+- **FR-access-45** — The daemon allows a namespace to reach each IPv4 DNS upstream of
+  its `resolv.conf` file on port 53 without a rule. The internet destination excludes a
+  private upstream, for example a resolver on the host local network. Without the rule,
+  each query that `tailscaled` forwards to that upstream times out. `tailscaled` then
+  reports the health warning `dns-forward-failing`.
 
 ### Compilation
 

@@ -669,6 +669,13 @@ func WriteNamespaceResolvConf(nsName string) error {
 	return nil
 }
 
+// HostUpstreams returns the DNS upstreams that WriteNamespaceResolvConf writes into the
+// resolv.conf file of each namespace. The access compiler opens port 53 to each of them,
+// because the internet destination excludes a private upstream (FR-access-45).
+func HostUpstreams() []string {
+	return resolveHostUpstreams()
+}
+
 // resolveHostUpstreams returns DNS upstreams reachable from inside a namespace.
 // It prefers /run/systemd/resolve/resolv.conf (real upstreams, bypassing the
 // systemd-resolved stub) and falls back to /etc/resolv.conf. Loopback addresses

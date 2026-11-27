@@ -276,6 +276,11 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 </ul>
 <p>address without a rule, because DNS is how the product works.</p>
+<ul>
+<li><strong>FR-access-45</strong> — The daemon allows a namespace to reach each IPv4 DNS upstream of
+</li>
+</ul>
+<p>its <code>resolv.conf</code> file on port 53 without a rule. The internet destination excludes a private upstream, for example a resolver on the host local network. Without the rule, each query that <code>tailscaled</code> forwards to that upstream times out. <code>tailscaled</code> then reports the health warning <code>dns-forward-failing</code>.</p>
 <h4 id="reachability-model-compilation">Compilation</h4>
 <ul>
 <li><strong>FR-access-15</strong> — The daemon compiles the rule set into an ordered list of iptables

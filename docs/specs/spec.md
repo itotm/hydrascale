@@ -6,7 +6,7 @@ status: approved
 spec_version: 2
 created: 2026-08-04
 approved: 2026-10-09
-html_generated: 2026-11-15
+html_generated: 2026-11-27
 branch_model: dev-and-live
 features:
   - id: foundation

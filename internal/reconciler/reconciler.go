@@ -149,6 +149,10 @@ type Reconciler struct {
 	// rules. A test replaces it.
 	setupHostAccess func(nsName string, index int, infraSubnet string, publish []string, ipv6 bool) error
 
+	// hostUpstreams returns the DNS upstreams of the resolv.conf file of each namespace.
+	// A test replaces it.
+	hostUpstreams func() []string
+
 	// reaper removes each host rule that names a veth device that is gone. New sets it
 	// when the namespace manager carries that ability.
 	reaper StaleRuleReaper
@@ -375,6 +379,7 @@ func New(configPath string, ns namespaces.Manager, dm daemon.Manager, rt routing
 		reachability:       make(map[string]reach.Result),
 		teardownHostAccess: namespaces.TeardownHostAccess,
 		setupHostAccess:    namespaces.SetupHostAccess,
+		hostUpstreams:      namespaces.HostUpstreams,
 		hostFile:           dns.NewHostFileMonitor(dns.DefaultHostResolvConf),
 	}
 	if reaper, ok := ns.(StaleRuleReaper); ok {
@@ -1206,7 +1211,8 @@ func (r *Reconciler) compileAccess() (accessInput, error) {
 		return accessInput{}, err
 	}
 
-	compiled, err := access.Compile(set, access.Topology{Devices: devices, DNSAddress: bindAddress, Ports: ports}, tail)
+	topo := access.Topology{Devices: devices, DNSAddress: bindAddress, Ports: ports, Upstreams: r.hostUpstreams()}
+	compiled, err := access.Compile(set, topo, tail)
 	if err != nil {
 		return accessInput{}, fmt.Errorf("compile the local rule set: %w", err)
 	}

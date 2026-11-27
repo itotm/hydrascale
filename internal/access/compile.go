@@ -72,6 +72,10 @@ type Topology struct {
 	// Ports maps a tailnet identifier to the UDP port of its tailscaled, which the host
 	// forwards to the namespace. A tailnet without an entry gets no forward rule.
 	Ports map[string]int
+	// Upstreams holds the DNS upstream addresses that the resolv.conf file of each
+	// namespace holds. The tailscaled of the namespace sends to them each name that no
+	// peer holds. The IPv4 rule set uses the IPv4 addresses only.
+	Upstreams []string
 }
 
 // TopologyIPv6 holds the host facts that CompileIPv6 needs. CompileIPv6 takes them as an
@@ -180,7 +184,54 @@ func Compile(set RuleSet, topo Topology, tail Tail) (Compiled, error) {
 		}
 	}
 
-	return compile(set, ids, topo.Devices, listenAccepts(ids, topo.Devices, topo.Ports), dns, privateRanges, tail)
+	// FR-access-45: a namespace reaches each DNS upstream of its resolv.conf file on port
+	// 53 without a rule. The internet destination excludes a private upstream, for example
+	// a resolver on the host local network. Without this rule, each query of tailscaled to
+	// that upstream timed out, and tailscaled reported the health warning
+	// dns-forward-failing. The out chain holds the same rule for an upstream that is an
+	// address of the host.
+	upstreams, err := upstreamAddresses(topo.Upstreams)
+	if err != nil {
+		return Compiled{}, err
+	}
+	listen := listenAccepts(ids, topo.Devices, topo.Ports)
+	for _, id := range ids {
+		for _, addr := range upstreams {
+			for _, protocol := range []string{"udp", "tcp"} {
+				listen = append(listen, appendRule(ChainForward,
+					[]string{"-i", topo.Devices[id], "!", "-o", devicePrefix + "+", "-d", addr, "-p", protocol, "--dport", "53", "-j", "ACCEPT"}))
+				dns = append(dns, appendRule(ChainOut,
+					[]string{"-i", topo.Devices[id], "-d", addr, "-p", protocol, "--dport", "53", "-j", "ACCEPT"}))
+			}
+		}
+	}
+
+	return compile(set, ids, topo.Devices, listen, dns, privateRanges, tail)
+}
+
+// upstreamAddresses returns each IPv4 upstream once, in the order of entries. The IPv4
+// rule set holds no IPv6 address, therefore upstreamAddresses ignores an IPv6 upstream.
+// upstreamAddresses returns an error when an entry is not an IP address.
+func upstreamAddresses(entries []string) ([]string, error) {
+	seen := make(map[string]bool, len(entries))
+	addrs := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		ip := net.ParseIP(entry)
+		if ip == nil {
+			return nil, fmt.Errorf("invalid DNS upstream %q: the value is an IP address", entry)
+		}
+		v4 := ip.To4()
+		if v4 == nil {
+			continue
+		}
+		addr := v4.String()
+		if seen[addr] {
+			continue
+		}
+		seen[addr] = true
+		addrs = append(addrs, addr)
+	}
+	return addrs, nil
 }
 
 // listenAccepts returns one forward rule for each tailnet with a port. The rule accepts

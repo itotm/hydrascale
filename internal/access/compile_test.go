@@ -605,3 +605,45 @@ func TestCompileIPv6AcceptsTheForwardedListenPortOfEachTailnet(t *testing.T) {
 		}
 	}
 }
+
+func TestCompileAcceptsDNSToEachUpstreamOfTheNamespaces(t *testing.T) {
+	// FR-access-45. The internet destination excludes a resolver on the host local
+	// network, so each forwarded query of tailscaled timed out and tailscaled reported
+	// the health warning dns-forward-failing.
+	topo := testTopology()
+	topo.Upstreams = []string{"192.168.0.250", "2001:db8::53", "192.168.0.250", "1.1.1.1"}
+	c, err := Compile(RuleSet{Mode: ModeEnforce}, topo, EnforceTail)
+	if err != nil {
+		t.Fatalf("Compile: %v", err)
+	}
+
+	equalLines(t, c.Forward, []string{
+		"-A HYDRASCALE-FWD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT",
+		"-A HYDRASCALE-FWD -i vh0a0a0a0a0a0a ! -o vh+ -d 192.168.0.250 -p udp --dport 53 -j ACCEPT",
+		"-A HYDRASCALE-FWD -i vh0a0a0a0a0a0a ! -o vh+ -d 192.168.0.250 -p tcp --dport 53 -j ACCEPT",
+		"-A HYDRASCALE-FWD -i vh0a0a0a0a0a0a ! -o vh+ -d 1.1.1.1 -p udp --dport 53 -j ACCEPT",
+		"-A HYDRASCALE-FWD -i vh0a0a0a0a0a0a ! -o vh+ -d 1.1.1.1 -p tcp --dport 53 -j ACCEPT",
+		"-A HYDRASCALE-FWD -i vh0b0b0b0b0b0b ! -o vh+ -d 192.168.0.250 -p udp --dport 53 -j ACCEPT",
+		"-A HYDRASCALE-FWD -i vh0b0b0b0b0b0b ! -o vh+ -d 192.168.0.250 -p tcp --dport 53 -j ACCEPT",
+		"-A HYDRASCALE-FWD -i vh0b0b0b0b0b0b ! -o vh+ -d 1.1.1.1 -p udp --dport 53 -j ACCEPT",
+		"-A HYDRASCALE-FWD -i vh0b0b0b0b0b0b ! -o vh+ -d 1.1.1.1 -p tcp --dport 53 -j ACCEPT",
+		"-A HYDRASCALE-FWD -j DROP",
+	})
+	out := lines(c.Out)
+	for _, want := range []string{
+		"-A HYDRASCALE-OUT -i vh0a0a0a0a0a0a -d 192.168.0.250 -p udp --dport 53 -j ACCEPT",
+		"-A HYDRASCALE-OUT -i vh0b0b0b0b0b0b -d 1.1.1.1 -p tcp --dport 53 -j ACCEPT",
+	} {
+		if !slices.Contains(out, want) {
+			t.Errorf("the out chain holds no rule %q:\n%s", want, strings.Join(out, "\n"))
+		}
+	}
+}
+
+func TestCompileRejectsAnUpstreamThatIsNotAnAddress(t *testing.T) {
+	topo := testTopology()
+	topo.Upstreams = []string{"resolver.lan"}
+	if _, err := Compile(RuleSet{}, topo, EnforceTail); err == nil {
+		t.Error("Compile accepted the DNS upstream resolver.lan")
+	}
+}

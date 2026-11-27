@@ -734,3 +734,23 @@ func TestReconcileAcceptsTheListenPortOfEachTailnet(t *testing.T) {
 		t.Errorf("the forward chain holds no rule %q:\n%s", want, strings.Join(got, "\n"))
 	}
 }
+
+func TestReconcileAcceptsDNSToTheUpstreamsOfTheNamespaceResolvConf(t *testing.T) {
+	cfgPath := writeAccessConfig(t, "access:\n  mode: enforce\n  rules:\n    - from: alpha\n      to: internet\n", "alpha")
+	r := newTestReconciler(cfgPath, newMockNS(), newMockDaemon(), newMockRouting())
+	r.hostUpstreams = func() []string { return []string{"192.168.0.250"} }
+	w := &fakeChainWriter{}
+	r.SetChainWriter(w)
+
+	if err := r.Reconcile(); err != nil {
+		t.Fatalf("Reconcile: %v", err)
+	}
+
+	got := forwardRules(t, w)
+	for _, protocol := range []string{"udp", "tcp"} {
+		want := "-A " + access.ChainForward + " -i " + device("alpha") + " ! -o vh+ -d 192.168.0.250 -p " + protocol + " --dport 53 -j ACCEPT"
+		if !slices.Contains(got, want) {
+			t.Errorf("the compiled forward chain holds no rule %q:\n%s", want, strings.Join(got, "\n"))
+		}
+	}
+}
